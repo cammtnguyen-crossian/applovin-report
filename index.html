@@ -78,6 +78,11 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .warn-banner { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #92400e; }
+  .btn-copy { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; color: #475569; white-space: nowrap; }
+  .btn-copy:hover { background: #e2e8f0; }
+  .btn-copy.copied { background: #dcfce7; border-color: #86efac; color: #15803d; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+  .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
@@ -223,6 +228,9 @@ function renderTable(rows) {
       <td>
         ${r.confidence ? `<span class="conf conf-${r.confidence}"><span class="conf-dot"></span>${r.confidence}</span>` : '—'}
       </td>
+      <td>
+        <button class="btn-copy" onclick="copyRow(this, ${JSON.stringify(r).replace(/</g,'&lt;')})">Copy</button>
+      </td>
     </tr>
   `).join('');
 
@@ -234,6 +242,7 @@ function renderTable(rows) {
         <th>Metrics (hôm qua → hôm nay)</th>
         <th>Insight</th>
         <th>Confidence</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>${rowsHtml}</tbody>
@@ -291,6 +300,59 @@ async function loadReport() {
 
 // Init
 loadProducts().then(() => loadReport());
+</script>
+<div class="toast" id="toast">Đã copy!</div>
+
+<script>
+function copyRow(btn, r) {
+  const fmt = (v, prefix='', suffix='', decimals=2) => {
+    if (v === null || v === undefined) return '?';
+    const n = Number(v);
+    if (prefix === '$') return '$' + Math.abs(n).toLocaleString('en', {minimumFractionDigits:0, maximumFractionDigits:decimals});
+    return n.toFixed(decimals) + suffix;
+  };
+
+  const arrow = (prev, curr) => {
+    if (prev === null || curr === null) return '→';
+    return Number(curr) > Number(prev) ? '↑' : Number(curr) < Number(prev) ? '↓' : '→';
+  };
+
+  const lines = [];
+
+  // Metrics
+  lines.push('ME: ' + (r.prev_spend !== null ? '$'+Math.round(r.prev_spend) : '?') + ' → $' + Math.round(r.spend));
+  lines.push('%CBH: ' + (r.prev_cbh_pct !== null ? r.prev_cbh_pct+'%' : '?') + ' → ' + r.cbh_pct + '%');
+  lines.push('CBH: ' + (r.prev_cbh !== null ? '$'+Math.round(r.prev_cbh) : '?') + ' → $' + Math.round(r.cbh));
+
+  // Only show metrics that changed significantly
+  if (r.prev_cr !== null) {
+    const dir = Number(r.cr) > Number(r.prev_cr) ? ' tăng' : Number(r.cr) < Number(r.prev_cr) ? ' giảm' : '';
+    lines.push('CR' + dir + ': ' + r.prev_cr + '% → ' + r.cr + '%');
+  }
+  if (r.prev_ecpm !== null) {
+    const dir = Number(r.ecpm) > Number(r.prev_ecpm) ? ' tăng' : Number(r.ecpm) < Number(r.prev_ecpm) ? ' giảm' : '';
+    lines.push('eCPM' + dir + ': $' + r.prev_ecpm + ' → $' + r.ecpm);
+  }
+  if (r.prev_ctr !== null) {
+    const dir = Number(r.ctr) > Number(r.prev_ctr) ? ' tăng' : Number(r.ctr) < Number(r.prev_ctr) ? ' giảm' : '';
+    lines.push('CTR' + dir + ': ' + r.prev_ctr + '% → ' + r.ctr + '%');
+  }
+
+  lines.push('');
+  if (r.insight) lines.push('Insight: ' + r.insight);
+  if (r.action) lines.push('Plan: ' + r.action.toUpperCase());
+
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  });
+}
 </script>
 </body>
 </html>
