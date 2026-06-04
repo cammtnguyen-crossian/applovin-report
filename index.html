@@ -78,6 +78,9 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .warn-banner { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #92400e; }
+  .creative-note { font-size: 12px; line-height: 1.5; padding: 6px 10px; border-radius: 6px; max-width: 220px; }
+  .note-warn { background: #fef3c7; color: #92400e; border-left: 3px solid #f59e0b; }
+  .note-good { background: #dcfce7; color: #14532d; border-left: 3px solid #22c55e; }
   .btn-copy { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; color: #475569; white-space: nowrap; }
   .btn-copy:hover { background: #e2e8f0; }
   .btn-copy.copied { background: #dcfce7; border-color: #86efac; color: #15803d; }
@@ -228,6 +231,12 @@ const rowsHtml = rows.map((r, idx) => `
         ${r.insight ? `<div class="insight-text">${r.insight}</div>` : '<span style="color:#cbd5e1">—</span>'}
       </td>
       <td>
+        ${r.creative_note 
+          ? `<div class="creative-note ${r.creative_note.toLowerCase().includes('kéo xuống') || r.creative_note.toLowerCase().includes('warning') || r.creative_note.toLowerCase().includes('âm') ? 'note-warn' : 'note-good'}">${r.creative_note}</div>`
+          : '<span style="color:#cbd5e1">—</span>'
+        }
+      </td>
+      <td>
         ${r.confidence ? `<span class="conf conf-${r.confidence}"><span class="conf-dot"></span>${r.confidence}</span>` : '—'}
       </td>
       <td>
@@ -243,6 +252,7 @@ const rowsHtml = rows.map((r, idx) => `
         <th>Action</th>
         <th>Metrics (hôm qua → hôm nay)</th>
         <th>Insight</th>
+        <th>Creative Set Note</th>
         <th>Confidence</th>
         <th></th>
       </tr>
