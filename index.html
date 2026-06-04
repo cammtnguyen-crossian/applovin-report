@@ -210,7 +210,9 @@ function renderTable(rows) {
     return `<div class="empty"><div class="empty-icon">📭</div><div>Không có data cho ngày này</div></div>`;
   }
 
-  const rowsHtml = rows.map(r => `
+  // Store rows globally for copy
+window._reportRows = rows;
+const rowsHtml = rows.map((r, idx) => `
     <tr>
       <td>
         <div class="camp-name">${r.campaign}</div>
@@ -229,7 +231,7 @@ function renderTable(rows) {
         ${r.confidence ? `<span class="conf conf-${r.confidence}"><span class="conf-dot"></span>${r.confidence}</span>` : '—'}
       </td>
       <td>
-        <button class="btn-copy" onclick="copyRow(this, ${JSON.stringify(r).replace(/</g,'&lt;')})">Copy</button>
+        <button class="btn-copy" onclick="copyRow(this, ${idx})">Copy</button>
       </td>
     </tr>
   `).join('');
@@ -304,7 +306,8 @@ loadProducts().then(() => loadReport());
 <div class="toast" id="toast">Đã copy!</div>
 
 <script>
-function copyRow(btn, r) {
+function copyRow(btn, idx) {
+  const r = window._reportRows[idx];
   const fmt = (v, prefix='', suffix='', decimals=2) => {
     if (v === null || v === undefined) return '?';
     const n = Number(v);
