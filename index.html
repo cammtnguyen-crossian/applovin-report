@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Report — Applovin Performance Agent</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
+
+  .header { background: #1e2130; color: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 16px; font-weight: 600; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .last-updated { font-size: 12px; color: #64748b; }
+
+  .filters { background: white; border-bottom: 1px solid #e2e8f0; padding: 12px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .filter-label { font-size: 12px; color: #64748b; font-weight: 500; }
+  select, input[type="date"] { border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: #1e293b; background: white; outline: none; cursor: pointer; }
+  select:focus, input:focus { border-color: #6366f1; }
+  .btn-refresh { background: #6366f1; color: white; border: none; border-radius: 6px; padding: 7px 14px; font-size: 13px; cursor: pointer; font-weight: 500; }
+  .btn-refresh:hover { background: #4f46e5; }
+
+  .content { padding: 20px 24px; }
+
+  /* Summary cards */
+  .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .card { background: white; border-radius: 10px; padding: 14px 16px; border: 1px solid #e2e8f0; }
+  .card-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .card-val { font-size: 22px; font-weight: 600; color: #1e293b; }
+  .card-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+  /* Campaign table */
+  .table-wrap { background: white; border-radius: 10px; border: 1px solid #e2e8f0; overflow: hidden; }
+  .table-header { padding: 14px 16px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+  .table-title { font-size: 14px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 14px; background: #f8fafc; color: #64748b; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+  td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafbff; }
+
+  .camp-name { font-weight: 500; color: #1e293b; }
+  .product-name { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+  /* Action badges */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-scale { background: #dcfce7; color: #15803d; }
+  .badge-keep { background: #fef9c3; color: #854d0e; }
+  .badge-cut_light { background: #ffedd5; color: #c2410c; }
+  .badge-cut_heavy { background: #fee2e2; color: #b91c1c; }
+  .badge-suggest_pause { background: #f3e8ff; color: #7c3aed; }
+  .badge-unknown { background: #f1f5f9; color: #64748b; }
+
+  /* Confidence dots */
+  .conf { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
+  .conf-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .conf-high .conf-dot { background: #22c55e; }
+  .conf-medium .conf-dot { background: #f59e0b; }
+  .conf-low .conf-dot { background: #ef4444; }
+
+  /* Metric change */
+  .metric-block { font-size: 12px; line-height: 1.8; color: #475569; }
+  .metric-row { display: flex; gap: 6px; align-items: baseline; }
+  .metric-name { color: #94a3b8; font-size: 11px; width: 42px; flex-shrink: 0; }
+  .up { color: #16a34a; }
+  .down { color: #dc2626; }
+  .flat { color: #64748b; }
+
+  .insight-text { font-size: 12px; color: #475569; margin-top: 4px; font-style: italic; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 48px; color: #94a3b8; }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+  /* Loading */
+  .loading { text-align: center; padding: 48px; color: #64748b; }
+  .spinner { display: inline-block; width: 24px; height: 24px; border: 2px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .warn-banner { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #92400e; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 Daily Report — Applovin Performance Agent</h1>
+  <div class="header-right">
+    <span class="last-updated" id="lastUpdated">—</span>
+    <button class="btn-refresh" onclick="loadReport()">↻ Refresh</button>
+  </div>
+</div>
+
+<div class="filters">
+  <span class="filter-label">Date</span>
+  <input type="date" id="dateFilter" onchange="loadReport()">
+  <span class="filter-label" style="margin-left:8px">Product</span>
+  <select id="productFilter" onchange="loadReport()">
+    <option value="">All products</option>
+  </select>
+  <span class="filter-label" style="margin-left:8px">Action</span>
+  <select id="actionFilter" onchange="loadReport()">
+    <option value="">All actions</option>
+    <option value="scale">Scale</option>
+    <option value="keep">Keep</option>
+    <option value="cut_light">Cut light</option>
+    <option value="cut_heavy">Cut heavy</option>
+    <option value="suggest_pause">Suggest pause</option>
+  </select>
+</div>
+
+<div class="content">
+  <div class="summary-cards" id="summaryCards"></div>
+  <div class="table-wrap">
+    <div class="table-header">
+      <span class="table-title">Campaign Performance</span>
+      <span id="rowCount" style="font-size:12px;color:#94a3b8"></span>
+    </div>
+    <div id="tableBody"><div class="loading"><div class="spinner"></div><div>Loading...</div></div></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://zcdbdrttlrwhwofgbgz.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjZGJkcnR0dGxyd2h3b2ZnYmd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjI4MjQsImV4cCI6MjA5NjA5ODgyNH0.Lw4Kqp9ZFhn_KhxCY5fDxSc6SkJxVIvMEC3vAN_qR4s";
+
+// Set default date to yesterday
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+document.getElementById('dateFilter').value = yesterday.toISOString().split('T')[0];
+
+async function fetchData(date, product, action) {
+  let url = `${SUPABASE_URL}/rest/v1/v_daily_report?date=eq.${date}&order=product.asc,campaign.asc`;
+  if (product) url += `&product=eq.${encodeURIComponent(product)}`;
+  if (action) url += `&action=eq.${action}`;
+
+  const res = await fetch(url, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  return res.json();
+}
+
+async function fetchProducts() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/products?select=name&status=eq.active&order=name.asc`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  return res.json();
+}
+
+function formatMoney(v) {
+  if (v === null || v === undefined) return '—';
+  return '$' + Number(v).toLocaleString('en', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+}
+
+function formatPct(v) {
+  if (v === null || v === undefined) return '—';
+  return Number(v).toFixed(2) + '%';
+}
+
+function arrow(prev, curr) {
+  if (prev === null || curr === null) return '';
+  return curr > prev ? '↑' : curr < prev ? '↓' : '→';
+}
+
+function dirClass(prev, curr, higherIsBetter = true) {
+  if (prev === null || curr === null) return 'flat';
+  if (curr === prev) return 'flat';
+  const better = higherIsBetter ? curr > prev : curr < prev;
+  return better ? 'up' : 'down';
+}
+
+function renderMetrics(row) {
+  const metrics = [
+    { name: 'ME', prev: row.prev_spend, curr: row.spend, fmt: formatMoney, higherIsBetter: false },
+    { name: '%CBH', prev: row.prev_cbh_pct, curr: row.cbh_pct, fmt: formatPct, higherIsBetter: true },
+    { name: 'CBH', prev: row.prev_cbh, curr: row.cbh, fmt: formatMoney, higherIsBetter: true },
+    { name: 'CR', prev: row.prev_cr, curr: row.cr, fmt: formatPct, higherIsBetter: true },
+    { name: 'eCPM', prev: row.prev_ecpm, curr: row.ecpm, fmt: formatMoney, higherIsBetter: false },
+    { name: 'CTR', prev: row.prev_ctr, curr: row.ctr, fmt: formatPct, higherIsBetter: true },
+  ];
+
+  return metrics.map(m => {
+    const cls = dirClass(m.prev, m.curr, m.higherIsBetter);
+    const arr = arrow(m.prev, m.curr);
+    const prevStr = m.prev !== null ? m.fmt(m.prev) : '?';
+    const currStr = m.fmt(m.curr);
+    return `<div class="metric-row">
+      <span class="metric-name">${m.name}</span>
+      <span class="${cls}">${prevStr} ${arr} ${currStr}</span>
+    </div>`;
+  }).join('');
+}
+
+function badgeClass(action) {
+  const map = { scale:'badge-scale', keep:'badge-keep', cut_light:'badge-cut_light', cut_heavy:'badge-cut_heavy', suggest_pause:'badge-suggest_pause' };
+  return map[action] || 'badge-unknown';
+}
+
+function badgeLabel(action) {
+  const map = { scale:'🚀 Scale', keep:'⏸ Keep', cut_light:'⬇ Cut light', cut_heavy:'⬇⬇ Cut heavy', suggest_pause:'🛑 Suggest pause' };
+  return map[action] || action || '—';
+}
+
+function renderTable(rows) {
+  if (!rows.length) {
+    return `<div class="empty"><div class="empty-icon">📭</div><div>Không có data cho ngày này</div></div>`;
+  }
+
+  const rowsHtml = rows.map(r => `
+    <tr>
+      <td>
+        <div class="camp-name">${r.campaign}</div>
+        <div class="product-name">${r.product}</div>
+      </td>
+      <td>
+        <span class="badge ${badgeClass(r.action)}">${badgeLabel(r.action)}</span>
+      </td>
+      <td>
+        <div class="metric-block">${renderMetrics(r)}</div>
+      </td>
+      <td>
+        ${r.insight ? `<div class="insight-text">${r.insight}</div>` : '<span style="color:#cbd5e1">—</span>'}
+      </td>
+      <td>
+        ${r.confidence ? `<span class="conf conf-${r.confidence}"><span class="conf-dot"></span>${r.confidence}</span>` : '—'}
+      </td>
+    </tr>
+  `).join('');
+
+  return `<table>
+    <thead>
+      <tr>
+        <th>Campaign</th>
+        <th>Action</th>
+        <th>Metrics (hôm qua → hôm nay)</th>
+        <th>Insight</th>
+        <th>Confidence</th>
+      </tr>
+    </thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>`;
+}
+
+function renderSummary(rows) {
+  const total = rows.length;
+  const scale = rows.filter(r => r.action === 'scale').length;
+  const cut = rows.filter(r => r.action === 'cut_light' || r.action === 'cut_heavy').length;
+  const pause = rows.filter(r => r.action === 'suggest_pause').length;
+  const keep = rows.filter(r => r.action === 'keep').length;
+  const totalSpend = rows.reduce((s, r) => s + (r.spend || 0), 0);
+  const avgCbh = rows.length ? (rows.reduce((s, r) => s + (r.cbh_pct || 0), 0) / rows.length).toFixed(1) : 0;
+
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="card"><div class="card-label">Campaigns</div><div class="card-val">${total}</div><div class="card-sub">Live & analyzed</div></div>
+    <div class="card"><div class="card-label">Total Spend</div><div class="card-val">${formatMoney(totalSpend)}</div><div class="card-sub">Yesterday</div></div>
+    <div class="card"><div class="card-label">Avg %CBH</div><div class="card-val" style="color:${avgCbh>=12?'#16a34a':avgCbh<0?'#dc2626':'#f59e0b'}">${avgCbh}%</div><div class="card-sub">All campaigns</div></div>
+    <div class="card"><div class="card-label">Scale</div><div class="card-val" style="color:#16a34a">${scale}</div><div class="card-sub">Ready to scale</div></div>
+    <div class="card"><div class="card-label">Keep</div><div class="card-val" style="color:#854d0e">${keep}</div><div class="card-sub">Monitor</div></div>
+    <div class="card"><div class="card-label">Cut / Pause</div><div class="card-val" style="color:#dc2626">${cut + pause}</div><div class="card-sub">Need action</div></div>
+  `;
+}
+
+async function loadProducts() {
+  const products = await fetchProducts();
+  const sel = document.getElementById('productFilter');
+  products.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = p.name;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadReport() {
+  const date = document.getElementById('dateFilter').value;
+  const product = document.getElementById('productFilter').value;
+  const action = document.getElementById('actionFilter').value;
+
+  document.getElementById('tableBody').innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
+  document.getElementById('summaryCards').innerHTML = '';
+
+  try {
+    const rows = await fetchData(date, product, action);
+    document.getElementById('tableBody').innerHTML = renderTable(rows);
+    renderSummary(rows);
+    document.getElementById('rowCount').textContent = `${rows.length} campaigns`;
+    document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString('vi-VN');
+  } catch(e) {
+    document.getElementById('tableBody').innerHTML = `<div class="empty"><div>❌ Lỗi load data: ${e.message}</div></div>`;
+  }
+}
+
+// Init
+loadProducts().then(() => loadReport());
+</script>
+</body>
+</html>
