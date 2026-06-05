@@ -98,7 +98,11 @@
   </div>
 </div>
 
-<div class="filters">
+<div class="tabs" style="background:white;border-bottom:1px solid #e2e8f0;padding:0 24px;display:flex;gap:0">
+  <button class="tab-btn active" id="tab-daily" onclick="switchTab('daily')" style="padding:12px 20px;border:none;background:none;font-size:13px;font-weight:500;color:#6366f1;border-bottom:2px solid #6366f1;cursor:pointer">Daily Report</button>
+  <button class="tab-btn" id="tab-weekly" onclick="switchTab('weekly')" style="padding:12px 20px;border:none;background:none;font-size:13px;font-weight:500;color:#64748b;border-bottom:2px solid transparent;cursor:pointer">Weekly Report</button>
+</div>
+<div class="filters" id="daily-filters">
   <span class="filter-label">Date</span>
   <input type="date" id="dateFilter" onchange="loadReport()">
   <span class="filter-label" style="margin-left:8px">Product</span>
@@ -116,7 +120,8 @@
   </select>
 </div>
 
-<div class="content">
+</div>
+<div class="content" id="daily-content">
   <div class="summary-cards" id="summaryCards"></div>
   <div class="table-wrap">
     <div class="table-header">
@@ -367,5 +372,280 @@ function copyRow(btn, idx) {
   });
 }
 </script>
+
+<!-- WEEKLY FILTERS -->
+<div id="weekly-filters" style="display:none;background:white;border-bottom:1px solid #e2e8f0;padding:12px 24px;display:none;gap:12px;align-items:center;flex-wrap:wrap">
+  <span style="font-size:12px;color:#64748b;font-weight:500">Week of</span>
+  <select id="weekFilter" onchange="loadWeekly()" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px">
+    <option value="">Latest week</option>
+  </select>
+  <span style="font-size:12px;color:#64748b;font-weight:500;margin-left:8px">Product</span>
+  <select id="weekProductFilter" onchange="loadWeekly()" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px">
+    <option value="">All products</option>
+  </select>
+</div>
+
+<!-- WEEKLY CONTENT -->
+<div id="weekly-content" style="display:none;padding:20px 24px">
+  <div id="weekly-summary-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px"></div>
+  <div style="background:white;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden">
+    <div style="padding:14px 16px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:14px;font-weight:600">Weekly Campaign Performance</span>
+      <span id="weekly-row-count" style="font-size:12px;color:#94a3b8"></span>
+    </div>
+    <div id="weekly-table-body"><div style="text-align:center;padding:48px;color:#64748b">Select a week to load data</div></div>
+  </div>
+</div>
+
+<script>
+// ── Tab switching ──
+function switchTab(tab) {
+  const isDaily = tab === 'daily';
+  document.getElementById('tab-daily').style.color = isDaily ? '#6366f1' : '#64748b';
+  document.getElementById('tab-daily').style.borderBottom = isDaily ? '2px solid #6366f1' : '2px solid transparent';
+  document.getElementById('tab-weekly').style.color = !isDaily ? '#6366f1' : '#64748b';
+  document.getElementById('tab-weekly').style.borderBottom = !isDaily ? '2px solid #6366f1' : '2px solid transparent';
+
+  document.getElementById('daily-filters').style.display = isDaily ? 'flex' : 'none';
+  document.getElementById('daily-content').style.display = isDaily ? 'block' : 'none';
+  document.getElementById('weekly-filters').style.display = !isDaily ? 'flex' : 'none';
+  document.getElementById('weekly-content').style.display = !isDaily ? 'block' : 'none';
+
+  if (!isDaily && !window._weeklyLoaded) {
+    loadWeeklyInit();
+    window._weeklyLoaded = true;
+  }
+}
+
+// ── Weekly data fetch ──
+async function fetchWeeklyCampaigns(weekStart, product) {
+  let url = `${SUPABASE_URL}/rest/v1/campaign_weekly?order=week_start.desc`;
+  if (weekStart) url += `&week_start=eq.${weekStart}`;
+  const res = await fetch(url, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+  const rows = await res.json();
+
+  // Join with campaign names
+  const campRes = await fetch(`${SUPABASE_URL}/rest/v1/campaigns?select=id,name,product_id,products(name)`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
+  const camps = await campRes.json();
+  const campMap = {};
+  camps.forEach(c => { campMap[c.id] = { name: c.name, product: c.products?.name || '' }; });
+
+  return rows.map(r => ({ ...r, campaign: campMap[r.campaign_id]?.name || r.campaign_id, product: campMap[r.campaign_id]?.product || '' }))
+    .filter(r => !product || r.product === product);
+}
+
+async function fetchWeeklyCreatives(campaignId, weekStart) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/creative_weekly?creative_set_id=in.(select id from creative_sets where campaign_id=eq.${campaignId})&order=week_start.desc`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
+  // Simpler: fetch by joining
+  const csRes = await fetch(`${SUPABASE_URL}/rest/v1/creative_weekly?select=*,creative_sets!inner(name,campaign_id)&creative_sets.campaign_id=eq.${campaignId}&order=week_start.desc`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
+  return csRes.ok ? csRes.json() : [];
+}
+
+async function fetchWeekOptions() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/campaign_weekly?select=week_start,week_label&order=week_start.desc`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
+  const rows = await res.json();
+  const unique = [...new Map(rows.map(r => [r.week_start, r])).values()];
+  return unique;
+}
+
+async function loadWeeklyInit() {
+  const weeks = await fetchWeekOptions();
+  const sel = document.getElementById('weekFilter');
+  weeks.forEach(w => {
+    const opt = document.createElement('option');
+    opt.value = w.week_start;
+    opt.textContent = `${w.week_label || w.week_start} (${w.week_start})`;
+    sel.appendChild(opt);
+  });
+
+  // Load products
+  const prods = await fetchProducts();
+  const pSel = document.getElementById('weekProductFilter');
+  prods.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name; opt.textContent = p.name;
+    pSel.appendChild(opt);
+  });
+
+  if (weeks.length) {
+    sel.value = weeks[0].week_start;
+    loadWeekly();
+  }
+}
+
+async function loadWeekly() {
+  const weekStart = document.getElementById('weekFilter').value;
+  const product = document.getElementById('weekProductFilter').value;
+  document.getElementById('weekly-table-body').innerHTML = '<div style="text-align:center;padding:32px;color:#64748b">Loading...</div>';
+
+  try {
+    const rows = await fetchWeeklyCampaigns(weekStart, product);
+
+    // Also fetch W2 and W3 for trend
+    const allWeeks = await fetch(`${SUPABASE_URL}/rest/v1/campaign_weekly?order=campaign_id.asc,week_start.desc`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    }).then(r => r.json());
+
+    // Group by campaign
+    const byCamp = {};
+    allWeeks.forEach(r => {
+      if (!byCamp[r.campaign_id]) byCamp[r.campaign_id] = [];
+      byCamp[r.campaign_id].push(r);
+    });
+
+    renderWeeklySummary(rows);
+    renderWeeklyTable(rows, byCamp);
+    document.getElementById('weekly-row-count').textContent = `${rows.length} campaigns`;
+  } catch(e) {
+    document.getElementById('weekly-table-body').innerHTML = `<div style="text-align:center;padding:32px;color:#ef4444">Error: ${e.message}</div>`;
+  }
+}
+
+function renderWeeklySummary(rows) {
+  const w1Rows = rows.filter(r => r.action);
+  const totalSpend = rows.reduce((s,r) => s + (r.spend||0), 0);
+  const avgCbh = rows.length ? (rows.reduce((s,r) => s + (r.cbh_pct||0), 0)/rows.length).toFixed(1) : 0;
+  const scale = rows.filter(r => r.action==='scale').length;
+  const cut = rows.filter(r => r.action?.includes('cut')).length;
+
+  document.getElementById('weekly-summary-cards').innerHTML = `
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
+      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Campaigns</div>
+      <div style="font-size:22px;font-weight:600">${rows.length}</div>
+    </div>
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
+      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Total Spend W1</div>
+      <div style="font-size:22px;font-weight:600">$${totalSpend.toLocaleString('en',{maximumFractionDigits:0})}</div>
+    </div>
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
+      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Avg %CBH W1</div>
+      <div style="font-size:22px;font-weight:600;color:${avgCbh>=12?'#16a34a':avgCbh<0?'#dc2626':'#f59e0b'}">${avgCbh}%</div>
+    </div>
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
+      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Scale</div>
+      <div style="font-size:22px;font-weight:600;color:#16a34a">${scale}</div>
+    </div>
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
+      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Cut / Pause</div>
+      <div style="font-size:22px;font-weight:600;color:#dc2626">${cut}</div>
+    </div>
+  `;
+}
+
+function fmt$(v) { return v!=null ? '$'+Number(v).toLocaleString('en',{maximumFractionDigits:0}) : '?'; }
+function fmtP(v) { return v!=null ? Number(v).toFixed(2)+'%' : '?'; }
+function trend$(w3,w2,w1) { return `${fmt$(w3)} → ${fmt$(w2)} → ${fmt$(w1)}`; }
+function trendP(w3,w2,w1) { return `${fmtP(w3)} → ${fmtP(w2)} → ${fmtP(w1)}`; }
+
+function renderWeeklyTable(rows, byCamp) {
+  if (!rows.length) {
+    document.getElementById('weekly-table-body').innerHTML = '<div style="text-align:center;padding:48px;color:#94a3b8">Không có data</div>';
+    return;
+  }
+
+  const actionLabel = { scale:'🚀 Scale', keep:'⏸ Keep', cut_light:'⬇ Cut light', cut_heavy:'⬇⬇ Cut heavy', suggest_pause:'🛑 Pause' };
+  const actionColor = { scale:'#dcfce7', keep:'#fef9c3', cut_light:'#ffedd5', cut_heavy:'#fee2e2', suggest_pause:'#f3e8ff' };
+  const actionText = { scale:'#15803d', keep:'#854d0e', cut_light:'#c2410c', cut_heavy:'#b91c1c', suggest_pause:'#7c3aed' };
+
+  window._weeklyRows = rows;
+  window._byCamp = byCamp;
+
+  const rowsHtml = rows.map((r, idx) => {
+    const history = byCamp[r.campaign_id] || [];
+    const w1 = history[0], w2 = history[1], w3 = history[2];
+
+    return `
+    <tr style="border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#fafbff'" onmouseout="this.style.background='white'">
+      <td style="padding:12px 14px;vertical-align:top">
+        <div style="font-weight:500;color:#1e293b">${r.campaign}</div>
+        <div style="font-size:11px;color:#94a3b8">${r.product}</div>
+      </td>
+      <td style="padding:12px 14px;vertical-align:top">
+        ${r.action ? `<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${actionColor[r.action]||'#f1f5f9'};color:${actionText[r.action]||'#64748b'}">${actionLabel[r.action]||r.action}</span>` : '—'}
+      </td>
+      <td style="padding:12px 14px;vertical-align:top;font-size:12px;color:#475569;line-height:1.9">
+        <div>ME: ${trend$(w3?.spend, w2?.spend, w1?.spend)}</div>
+        <div>%CBH: ${trendP(w3?.cbh_pct, w2?.cbh_pct, w1?.cbh_pct)}</div>
+        <div>CBH: ${trend$(w3?.cbh, w2?.cbh, w1?.cbh)}</div>
+        <div>CTR: ${trendP(w3?.ctr, w2?.ctr, w1?.ctr)}</div>
+        <div>eCPM: ${trend$(w3?.ecpm, w2?.ecpm, w1?.ecpm)}</div>
+        <div>CR: ${trendP(w3?.cr, w2?.cr, w1?.cr)}</div>
+        <div>PO: ${w3?.purchases||'?'} → ${w2?.purchases||'?'} → ${w1?.purchases||'?'}</div>
+      </td>
+      <td style="padding:12px 14px;vertical-align:top;font-size:12px;color:#475569;max-width:220px">
+        ${r.insight ? r.insight.split('\n').map(l => l.trim() ? `<div style="margin-bottom:4px">${l}</div>` : '').join('') : '<span style="color:#cbd5e1">—</span>'}
+      </td>
+      <td style="padding:12px 14px;vertical-align:top;font-size:12px;color:#475569">
+        ${r.plan || '<span style="color:#cbd5e1">—</span>'}
+      </td>
+      <td style="padding:12px 14px;vertical-align:top">
+        <button onclick="copyWeeklyRow(${idx})" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;color:#475569">Copy</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('weekly-table-body').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:#f8fafc">
+          <th style="text-align:left;padding:10px 14px;color:#64748b;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0">Campaign</th>
+          <th style="text-align:left;padding:10px 14px;color:#64748b;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0">Action</th>
+          <th style="text-align:left;padding:10px 14px;color:#64748b;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0">Metrics (W3→W2→W1)</th>
+          <th style="text-align:left;padding:10px 14px;color:#64748b;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0">Insight</th>
+          <th style="text-align:left;padding:10px 14px;color:#64748b;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0">Plan</th>
+          <th style="border-bottom:1px solid #e2e8f0"></th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>`;
+}
+
+function copyWeeklyRow(idx) {
+  const r = window._weeklyRows[idx];
+  const history = window._byCamp[r.campaign_id] || [];
+  const w1 = history[0], w2 = history[1], w3 = history[2];
+
+  const fmt$ = v => v!=null ? '$'+Math.round(v).toLocaleString() : '?';
+  const fmtP = v => v!=null ? Number(v).toFixed(2)+'%' : '?';
+
+  const lines = [
+    `Weekly — ${r.campaign}`,
+    '',
+    `- ME: ${fmt$(w3?.spend)} → ${fmt$(w2?.spend)} → ${fmt$(w1?.spend)}`,
+    `- %CBH: ${fmtP(w3?.cbh_pct)} → ${fmtP(w2?.cbh_pct)} → ${fmtP(w1?.cbh_pct)}`,
+    `- CBH: ${fmt$(w3?.cbh)} → ${fmt$(w2?.cbh)} → ${fmt$(w1?.cbh)}`,
+    `- CTR: ${fmtP(w3?.ctr)} → ${fmtP(w2?.ctr)} → ${fmtP(w1?.ctr)}`,
+    `- eCPM: ${fmt$(w3?.ecpm)} → ${fmt$(w2?.ecpm)} → ${fmt$(w1?.ecpm)}`,
+    `- CR: ${fmtP(w3?.cr)} → ${fmtP(w2?.cr)} → ${fmtP(w1?.cr)}`,
+    `- PO: ${w3?.purchases||'?'} → ${w2?.purchases||'?'} → ${w1?.purchases||'?'}`,
+  ];
+
+  if (r.insight) {
+    lines.push('');
+    lines.push('Insight:');
+    r.insight.split('\n').forEach(l => { if(l.trim()) lines.push(l.trim()); });
+  }
+  if (r.plan) {
+    lines.push('');
+    lines.push('Plan:');
+    lines.push(r.plan);
+  }
+
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    const toast = document.getElementById('toast');
+    if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
+  });
+}
+</script>
+
 </body>
 </html>
+<!-- WEEKLY TAB INJECTION - added below existing content -->
