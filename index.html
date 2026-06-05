@@ -7,29 +7,23 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
-
   .header { background: #1e2130; color: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
   .header h1 { font-size: 16px; font-weight: 600; }
-  .header-right { display: flex; align-items: center; gap: 12px; }
   .last-updated { font-size: 12px; color: #64748b; }
-
+  .tabs { background: white; border-bottom: 1px solid #e2e8f0; padding: 0 24px; display: flex; }
+  .tab-btn { padding: 12px 20px; border: none; background: none; font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; color: #64748b; }
+  .tab-btn.active { color: #6366f1; border-bottom-color: #6366f1; }
   .filters { background: white; border-bottom: 1px solid #e2e8f0; padding: 12px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
   .filter-label { font-size: 12px; color: #64748b; font-weight: 500; }
   select, input[type="date"] { border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: #1e293b; background: white; outline: none; cursor: pointer; }
   select:focus, input:focus { border-color: #6366f1; }
   .btn-refresh { background: #6366f1; color: white; border: none; border-radius: 6px; padding: 7px 14px; font-size: 13px; cursor: pointer; font-weight: 500; }
-  .btn-refresh:hover { background: #4f46e5; }
-
   .content { padding: 20px 24px; }
-
-  /* Summary cards */
-  .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
   .card { background: white; border-radius: 10px; padding: 14px 16px; border: 1px solid #e2e8f0; }
   .card-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
-  .card-val { font-size: 22px; font-weight: 600; color: #1e293b; }
+  .card-val { font-size: 22px; font-weight: 600; }
   .card-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-
-  /* Campaign table */
   .table-wrap { background: white; border-radius: 10px; border: 1px solid #e2e8f0; overflow: hidden; }
   .table-header { padding: 14px 16px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
   .table-title { font-size: 14px; font-weight: 600; }
@@ -38,46 +32,24 @@
   td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #fafbff; }
-
-  .camp-name { font-weight: 500; color: #1e293b; }
-  .product-name { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-
-  /* Action badges */
   .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
   .badge-scale { background: #dcfce7; color: #15803d; }
   .badge-keep { background: #fef9c3; color: #854d0e; }
   .badge-cut_light { background: #ffedd5; color: #c2410c; }
   .badge-cut_heavy { background: #fee2e2; color: #b91c1c; }
   .badge-suggest_pause { background: #f3e8ff; color: #7c3aed; }
-  .badge-unknown { background: #f1f5f9; color: #64748b; }
-
-  /* Confidence dots */
   .conf { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
   .conf-dot { width: 7px; height: 7px; border-radius: 50%; }
   .conf-high .conf-dot { background: #22c55e; }
   .conf-medium .conf-dot { background: #f59e0b; }
   .conf-low .conf-dot { background: #ef4444; }
-
-  /* Metric change */
-  .metric-block { font-size: 12px; line-height: 1.8; color: #475569; }
+  .metric-block { font-size: 12px; line-height: 1.9; color: #475569; }
   .metric-row { display: flex; gap: 6px; align-items: baseline; }
   .metric-name { color: #94a3b8; font-size: 11px; width: 42px; flex-shrink: 0; }
   .up { color: #16a34a; }
   .down { color: #dc2626; }
   .flat { color: #64748b; }
-
-  .insight-text { font-size: 12px; color: #475569; margin-top: 4px; font-style: italic; }
-
-  /* Empty state */
-  .empty { text-align: center; padding: 48px; color: #94a3b8; }
-  .empty-icon { font-size: 32px; margin-bottom: 8px; }
-
-  /* Loading */
-  .loading { text-align: center; padding: 48px; color: #64748b; }
-  .spinner { display: inline-block; width: 24px; height: 24px; border: 2px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 8px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .warn-banner { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #92400e; }
+  .insight-text { font-size: 12px; color: #475569; font-style: italic; }
   .creative-note { font-size: 12px; line-height: 1.5; padding: 6px 10px; border-radius: 6px; max-width: 220px; }
   .note-warn { background: #fef3c7; color: #92400e; border-left: 3px solid #f59e0b; }
   .note-good { background: #dcfce7; color: #14532d; border-left: 3px solid #22c55e; }
@@ -86,29 +58,41 @@
   .btn-copy.copied { background: #dcfce7; border-color: #86efac; color: #15803d; }
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
   .toast.show { opacity: 1; }
+  .loading { text-align: center; padding: 48px; color: #64748b; }
+  .empty { text-align: center; padding: 48px; color: #94a3b8; }
+  .cs-table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 12px; }
+  .cs-table th { text-align: left; padding: 7px 12px; background: #f1f5f9; color: #64748b; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .4px; }
+  .cs-table td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  .cs-table tr:last-child td { border-bottom: none; }
+  .tag-new { background: #dbeafe; color: #1e40af; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-right: 4px; }
+  .tag-off { background: #fee2e2; color: #b91c1c; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-right: 4px; }
+  .banner { border-radius: 8px; padding: 8px 14px; margin-bottom: 8px; font-size: 12px; }
+  .banner-new { background: #dbeafe; color: #1e40af; }
+  .banner-off { background: #fee2e2; color: #b91c1c; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>📊 Daily Report — Applovin Performance Agent</h1>
-  <div class="header-right">
+  <div style="display:flex;align-items:center;gap:12px">
     <span class="last-updated" id="lastUpdated">—</span>
     <button class="btn-refresh" onclick="loadReport()">↻ Refresh</button>
   </div>
 </div>
 
-<div class="tabs" style="background:white;border-bottom:1px solid #e2e8f0;padding:0 24px;display:flex;gap:0">
-  <button class="tab-btn active" id="tab-daily" onclick="switchTab('daily')" style="padding:12px 20px;border:none;background:none;font-size:13px;font-weight:500;color:#6366f1;border-bottom:2px solid #6366f1;cursor:pointer">Daily Report</button>
-  <button class="tab-btn" id="tab-weekly" onclick="switchTab('weekly')" style="padding:12px 20px;border:none;background:none;font-size:13px;font-weight:500;color:#64748b;border-bottom:2px solid transparent;cursor:pointer">Weekly Report</button>
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" id="tab-daily" onclick="switchTab('daily')">Daily Report</button>
+  <button class="tab-btn" id="tab-weekly" onclick="switchTab('weekly')">Weekly Report</button>
 </div>
+
+<!-- DAILY FILTERS -->
 <div class="filters" id="daily-filters">
   <span class="filter-label">Date</span>
   <input type="date" id="dateFilter" onchange="loadReport()">
   <span class="filter-label" style="margin-left:8px">Product</span>
-  <select id="productFilter" onchange="loadReport()">
-    <option value="">All products</option>
-  </select>
+  <select id="productFilter" onchange="loadReport()"><option value="">All products</option></select>
   <span class="filter-label" style="margin-left:8px">Action</span>
   <select id="actionFilter" onchange="loadReport()">
     <option value="">All actions</option>
@@ -120,179 +104,83 @@
   </select>
 </div>
 
+<!-- WEEKLY FILTERS -->
+<div class="filters" id="weekly-filters" style="display:none">
+  <span class="filter-label">Week of</span>
+  <select id="weekFilter" onchange="loadWeekly()"><option value="">Latest week</option></select>
+  <span class="filter-label" style="margin-left:8px">Product</span>
+  <select id="weekProductFilter" onchange="loadWeekly()"><option value="">All products</option></select>
 </div>
+
+<!-- DAILY CONTENT -->
 <div class="content" id="daily-content">
-  <div class="summary-cards" id="summaryCards"></div>
+  <div class="cards" id="summaryCards"></div>
   <div class="table-wrap">
     <div class="table-header">
       <span class="table-title">Campaign Performance</span>
       <span id="rowCount" style="font-size:12px;color:#94a3b8"></span>
     </div>
-    <div id="tableBody"><div class="loading"><div class="spinner"></div><div>Loading...</div></div></div>
+    <div id="tableBody"><div class="loading">Loading...</div></div>
   </div>
 </div>
+
+<!-- WEEKLY CONTENT -->
+<div class="content" id="weekly-content" style="display:none">
+  <div class="cards" id="weekly-cards"></div>
+  <div class="table-wrap">
+    <div class="table-header">
+      <span class="table-title">Weekly Campaign Performance</span>
+      <span id="weekly-row-count" style="font-size:12px;color:#94a3b8"></span>
+    </div>
+    <div id="weekly-table-body"><div class="loading">Select a week to load data</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Đã copy!</div>
 
 <script>
 const SUPABASE_URL = "https://zcdbdrtttlrwhwofgbgz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_X6gaCcP_dGkDdzzpHOP5mg_7-X9ihAW";
 
-// Set default date to yesterday
+// ── Init ──
 const yesterday = new Date();
 yesterday.setDate(yesterday.getDate() - 1);
 document.getElementById('dateFilter').value = yesterday.toISOString().split('T')[0];
 
-async function fetchData(date, product, action) {
-  let url = `${SUPABASE_URL}/rest/v1/v_daily_report?date=eq.${date}&order=product.asc,campaign.asc`;
-  if (product) url += `&product=eq.${encodeURIComponent(product)}`;
-  if (action) url += `&action=eq.${action}`;
-
-  const res = await fetch(url, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+// ── API helper ──
+async function api(path) {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY }
   });
   return res.json();
 }
 
-async function fetchProducts() {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/products?select=name&status=eq.active&order=name.asc`, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-  });
-  return res.json();
+// ── Tab switch ──
+function switchTab(tab) {
+  const isDaily = tab === 'daily';
+  document.getElementById('tab-daily').className = 'tab-btn' + (isDaily ? ' active' : '');
+  document.getElementById('tab-weekly').className = 'tab-btn' + (!isDaily ? ' active' : '');
+  document.getElementById('daily-filters').style.display = isDaily ? 'flex' : 'none';
+  document.getElementById('daily-content').style.display = isDaily ? 'block' : 'none';
+  document.getElementById('weekly-filters').style.display = !isDaily ? 'flex' : 'none';
+  document.getElementById('weekly-content').style.display = !isDaily ? 'block' : 'none';
+  if (!isDaily && !window._weeklyInited) { initWeekly(); window._weeklyInited = true; }
 }
 
-function formatMoney(v) {
-  if (v === null || v === undefined) return '—';
-  return '$' + Number(v).toLocaleString('en', {minimumFractionDigits: 0, maximumFractionDigits: 2});
-}
-
-function formatPct(v) {
-  if (v === null || v === undefined) return '—';
-  return Number(v).toFixed(2) + '%';
-}
-
-function arrow(prev, curr) {
-  if (prev === null || curr === null) return '';
-  return curr > prev ? '↑' : curr < prev ? '↓' : '→';
-}
-
-function dirClass(prev, curr, higherIsBetter = true) {
-  if (prev === null || curr === null) return 'flat';
-  if (curr === prev) return 'flat';
-  const better = higherIsBetter ? curr > prev : curr < prev;
-  return better ? 'up' : 'down';
-}
-
-function renderMetrics(row) {
-  const metrics = [
-    { name: 'ME', prev: row.prev_spend, curr: row.spend, fmt: formatMoney, higherIsBetter: false },
-    { name: '%CBH', prev: row.prev_cbh_pct, curr: row.cbh_pct, fmt: formatPct, higherIsBetter: true },
-    { name: 'CBH', prev: row.prev_cbh, curr: row.cbh, fmt: formatMoney, higherIsBetter: true },
-    { name: 'CR', prev: row.prev_cr, curr: row.cr, fmt: formatPct, higherIsBetter: true },
-    { name: 'eCPM', prev: row.prev_ecpm, curr: row.ecpm, fmt: formatMoney, higherIsBetter: false },
-    { name: 'CTR', prev: row.prev_ctr, curr: row.ctr, fmt: formatPct, higherIsBetter: true },
-  ];
-
-  return metrics.map(m => {
-    const cls = dirClass(m.prev, m.curr, m.higherIsBetter);
-    const arr = arrow(m.prev, m.curr);
-    const prevStr = m.prev !== null ? m.fmt(m.prev) : '?';
-    const currStr = m.fmt(m.curr);
-    return `<div class="metric-row">
-      <span class="metric-name">${m.name}</span>
-      <span class="${cls}">${prevStr} ${arr} ${currStr}</span>
-    </div>`;
-  }).join('');
-}
-
-function badgeClass(action) {
-  const map = { scale:'badge-scale', keep:'badge-keep', cut_light:'badge-cut_light', cut_heavy:'badge-cut_heavy', suggest_pause:'badge-suggest_pause' };
-  return map[action] || 'badge-unknown';
-}
-
-function badgeLabel(action) {
-  const map = { scale:'🚀 Scale', keep:'⏸ Keep', cut_light:'⬇ Cut light', cut_heavy:'⬇⬇ Cut heavy', suggest_pause:'🛑 Suggest pause' };
-  return map[action] || action || '—';
-}
-
-function renderTable(rows) {
-  if (!rows.length) {
-    return `<div class="empty"><div class="empty-icon">📭</div><div>Không có data cho ngày này</div></div>`;
-  }
-
-  // Store rows globally for copy
-window._reportRows = rows;
-const rowsHtml = rows.map((r, idx) => `
-    <tr>
-      <td>
-        <div class="camp-name">${r.campaign}</div>
-        <div class="product-name">${r.product}</div>
-      </td>
-      <td>
-        <span class="badge ${badgeClass(r.action)}">${badgeLabel(r.action)}</span>
-      </td>
-      <td>
-        <div class="metric-block">${renderMetrics(r)}</div>
-      </td>
-      <td>
-        ${r.insight ? `<div class="insight-text">${r.insight}</div>` : '<span style="color:#cbd5e1">—</span>'}
-      </td>
-      <td>
-        ${r.creative_note 
-          ? `<div class="creative-note ${r.creative_note.toLowerCase().includes('kéo xuống') || r.creative_note.toLowerCase().includes('warning') || r.creative_note.toLowerCase().includes('âm') ? 'note-warn' : 'note-good'}">${r.creative_note}</div>`
-          : '<span style="color:#cbd5e1">—</span>'
-        }
-      </td>
-      <td>
-        ${r.confidence ? `<span class="conf conf-${r.confidence}"><span class="conf-dot"></span>${r.confidence}</span>` : '—'}
-      </td>
-      <td>
-        <button class="btn-copy" onclick="copyRow(this, ${idx})">Copy</button>
-      </td>
-    </tr>
-  `).join('');
-
-  return `<table>
-    <thead>
-      <tr>
-        <th>Campaign</th>
-        <th>Action</th>
-        <th>Metrics (hôm qua → hôm nay)</th>
-        <th>Insight</th>
-        <th>Creative Set Note</th>
-        <th>Confidence</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>${rowsHtml}</tbody>
-  </table>`;
-}
-
-function renderSummary(rows) {
-  const total = rows.length;
-  const scale = rows.filter(r => r.action === 'scale').length;
-  const cut = rows.filter(r => r.action === 'cut_light' || r.action === 'cut_heavy').length;
-  const pause = rows.filter(r => r.action === 'suggest_pause').length;
-  const keep = rows.filter(r => r.action === 'keep').length;
-  const totalSpend = rows.reduce((s, r) => s + (r.spend || 0), 0);
-  const avgCbh = rows.length ? (rows.reduce((s, r) => s + (r.cbh_pct || 0), 0) / rows.length).toFixed(1) : 0;
-
-  document.getElementById('summaryCards').innerHTML = `
-    <div class="card"><div class="card-label">Campaigns</div><div class="card-val">${total}</div><div class="card-sub">Live & analyzed</div></div>
-    <div class="card"><div class="card-label">Total Spend</div><div class="card-val">${formatMoney(totalSpend)}</div><div class="card-sub">Yesterday</div></div>
-    <div class="card"><div class="card-label">Avg %CBH</div><div class="card-val" style="color:${avgCbh>=12?'#16a34a':avgCbh<0?'#dc2626':'#f59e0b'}">${avgCbh}%</div><div class="card-sub">All campaigns</div></div>
-    <div class="card"><div class="card-label">Scale</div><div class="card-val" style="color:#16a34a">${scale}</div><div class="card-sub">Ready to scale</div></div>
-    <div class="card"><div class="card-label">Keep</div><div class="card-val" style="color:#854d0e">${keep}</div><div class="card-sub">Monitor</div></div>
-    <div class="card"><div class="card-label">Cut / Pause</div><div class="card-val" style="color:#dc2626">${cut + pause}</div><div class="card-sub">Need action</div></div>
-  `;
-}
+// ════════════════════════════════
+// DAILY REPORT
+// ════════════════════════════════
 
 async function loadProducts() {
-  const products = await fetchProducts();
+  const prods = await api('products?select=name&status=eq.active&order=name.asc');
   const sel = document.getElementById('productFilter');
-  products.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.name;
-    opt.textContent = p.name;
-    sel.appendChild(opt);
+  const selW = document.getElementById('weekProductFilter');
+  prods.forEach(p => {
+    [sel, selW].forEach(s => {
+      const o = document.createElement('option');
+      o.value = p.name; o.textContent = p.name;
+      s.appendChild(o);
+    });
   });
 }
 
@@ -300,443 +188,365 @@ async function loadReport() {
   const date = document.getElementById('dateFilter').value;
   const product = document.getElementById('productFilter').value;
   const action = document.getElementById('actionFilter').value;
-
-  document.getElementById('tableBody').innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
+  document.getElementById('tableBody').innerHTML = '<div class="loading">Loading...</div>';
   document.getElementById('summaryCards').innerHTML = '';
 
+  let url = 'v_daily_report?date=eq.' + date + '&order=product.asc,campaign.asc';
+  if (product) url += '&product=eq.' + encodeURIComponent(product);
+  if (action) url += '&action=eq.' + action;
+
   try {
-    const rows = await fetchData(date, product, action);
-    document.getElementById('tableBody').innerHTML = renderTable(rows);
+    const rows = await api(url);
+    window._dailyRows = rows;
     renderSummary(rows);
-    document.getElementById('rowCount').textContent = `${rows.length} campaigns`;
+    renderDailyTable(rows);
+    document.getElementById('rowCount').textContent = rows.length + ' campaigns';
     document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString('vi-VN');
   } catch(e) {
-    document.getElementById('tableBody').innerHTML = `<div class="empty"><div>❌ Lỗi load data: ${e.message}</div></div>`;
+    document.getElementById('tableBody').innerHTML = '<div class="empty">❌ ' + e.message + '</div>';
   }
 }
 
-// Init
-loadProducts().then(() => loadReport());
-</script>
-<div class="toast" id="toast">Đã copy!</div>
-
-<script>
-function copyRow(btn, idx) {
-  const r = window._reportRows[idx];
-  const fmt = (v, prefix='', suffix='', decimals=2) => {
-    if (v === null || v === undefined) return '?';
-    const n = Number(v);
-    if (prefix === '$') return '$' + Math.abs(n).toLocaleString('en', {minimumFractionDigits:0, maximumFractionDigits:decimals});
-    return n.toFixed(decimals) + suffix;
-  };
-
-  const arrow = (prev, curr) => {
-    if (prev === null || curr === null) return '→';
-    return Number(curr) > Number(prev) ? '↑' : Number(curr) < Number(prev) ? '↓' : '→';
-  };
-
-  const lines = [];
-
-  // Metrics
-  lines.push('ME: ' + (r.prev_spend !== null ? '$'+Math.round(r.prev_spend) : '?') + ' → $' + Math.round(r.spend));
-  lines.push('%CBH: ' + (r.prev_cbh_pct !== null ? r.prev_cbh_pct+'%' : '?') + ' → ' + r.cbh_pct + '%');
-  lines.push('CBH: ' + (r.prev_cbh !== null ? '$'+Math.round(r.prev_cbh) : '?') + ' → $' + Math.round(r.cbh));
-
-  // Only show metrics that changed significantly
-  if (r.prev_cr !== null) {
-    const dir = Number(r.cr) > Number(r.prev_cr) ? ' tăng' : Number(r.cr) < Number(r.prev_cr) ? ' giảm' : '';
-    lines.push('CR' + dir + ': ' + r.prev_cr + '% → ' + r.cr + '%');
-  }
-  if (r.prev_ecpm !== null) {
-    const dir = Number(r.ecpm) > Number(r.prev_ecpm) ? ' tăng' : Number(r.ecpm) < Number(r.prev_ecpm) ? ' giảm' : '';
-    lines.push('eCPM' + dir + ': $' + r.prev_ecpm + ' → $' + r.ecpm);
-  }
-  if (r.prev_ctr !== null) {
-    const dir = Number(r.ctr) > Number(r.prev_ctr) ? ' tăng' : Number(r.ctr) < Number(r.prev_ctr) ? ' giảm' : '';
-    lines.push('CTR' + dir + ': ' + r.prev_ctr + '% → ' + r.ctr + '%');
-  }
-
-  lines.push('');
-  if (r.insight) lines.push('Insight: ' + r.insight);
-  if (r.action) lines.push('Plan: ' + r.action.toUpperCase());
-
-  const text = lines.join('\n');
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✓ Copied';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-
-    const toast = document.getElementById('toast');
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
-  });
-}
-</script>
-
-<!-- WEEKLY FILTERS -->
-<div id="weekly-filters" style="display:none;background:white;border-bottom:1px solid #e2e8f0;padding:12px 24px;display:none;gap:12px;align-items:center;flex-wrap:wrap">
-  <span style="font-size:12px;color:#64748b;font-weight:500">Week of</span>
-  <select id="weekFilter" onchange="loadWeekly()" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px">
-    <option value="">Latest week</option>
-  </select>
-  <span style="font-size:12px;color:#64748b;font-weight:500;margin-left:8px">Product</span>
-  <select id="weekProductFilter" onchange="loadWeekly()" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px">
-    <option value="">All products</option>
-  </select>
-</div>
-
-<!-- WEEKLY CONTENT -->
-<div id="weekly-content" style="display:none;padding:20px 24px">
-  <div id="weekly-summary-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px"></div>
-  <div style="background:white;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden">
-    <div style="padding:14px 16px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:14px;font-weight:600">Weekly Campaign Performance</span>
-      <span id="weekly-row-count" style="font-size:12px;color:#94a3b8"></span>
-    </div>
-    <div id="weekly-table-body"><div style="text-align:center;padding:48px;color:#64748b">Select a week to load data</div></div>
-  </div>
-</div>
-
-<script>
-// ── Tab switching ──
-function switchTab(tab) {
-  const isDaily = tab === 'daily';
-  document.getElementById('tab-daily').style.color = isDaily ? '#6366f1' : '#64748b';
-  document.getElementById('tab-daily').style.borderBottom = isDaily ? '2px solid #6366f1' : '2px solid transparent';
-  document.getElementById('tab-weekly').style.color = !isDaily ? '#6366f1' : '#64748b';
-  document.getElementById('tab-weekly').style.borderBottom = !isDaily ? '2px solid #6366f1' : '2px solid transparent';
-
-  document.getElementById('daily-filters').style.display = isDaily ? 'flex' : 'none';
-  document.getElementById('daily-content').style.display = isDaily ? 'block' : 'none';
-  document.getElementById('weekly-filters').style.display = !isDaily ? 'flex' : 'none';
-  document.getElementById('weekly-content').style.display = !isDaily ? 'block' : 'none';
-
-  if (!isDaily && !window._weeklyLoaded) {
-    loadWeeklyInit();
-    window._weeklyLoaded = true;
-  }
+function renderSummary(rows) {
+  const spend = rows.reduce((s,r) => s+(r.spend||0), 0);
+  const avgCbh = rows.length ? (rows.reduce((s,r) => s+(r.cbh_pct||0),0)/rows.length).toFixed(1) : 0;
+  const scale = rows.filter(r=>r.action==='scale').length;
+  const keep = rows.filter(r=>r.action==='keep').length;
+  const cut = rows.filter(r=>r.action==='cut_light'||r.action==='cut_heavy'||r.action==='suggest_pause').length;
+  const cbhColor = avgCbh>=12?'#16a34a':avgCbh<0?'#dc2626':'#f59e0b';
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="card"><div class="card-label">Campaigns</div><div class="card-val">${rows.length}</div><div class="card-sub">Live & analyzed</div></div>
+    <div class="card"><div class="card-label">Total Spend</div><div class="card-val">$${spend.toLocaleString('en',{maximumFractionDigits:0})}</div><div class="card-sub">Yesterday</div></div>
+    <div class="card"><div class="card-label">Avg %CBH</div><div class="card-val" style="color:${cbhColor}">${avgCbh}%</div><div class="card-sub">All campaigns</div></div>
+    <div class="card"><div class="card-label">Scale</div><div class="card-val" style="color:#16a34a">${scale}</div></div>
+    <div class="card"><div class="card-label">Keep</div><div class="card-val" style="color:#854d0e">${keep}</div></div>
+    <div class="card"><div class="card-label">Cut / Pause</div><div class="card-val" style="color:#dc2626">${cut}</div></div>`;
 }
 
-// ── Weekly data fetch ──
-async function fetchWeeklyCampaigns(weekStart, product) {
-  let url = `${SUPABASE_URL}/rest/v1/campaign_weekly?order=week_start.desc`;
-  if (weekStart) url += `&week_start=eq.${weekStart}`;
-  const res = await fetch(url, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
-  const rows = await res.json();
-
-  // Join with campaign names
-  const campRes = await fetch(`${SUPABASE_URL}/rest/v1/campaigns?select=id,name,product_id,products(name)`, {
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-  });
-  const camps = await campRes.json();
-  const campMap = {};
-  camps.forEach(c => { campMap[c.id] = { name: c.name, product: c.products?.name || '' }; });
-
-  return rows.map(r => ({ ...r, campaign: campMap[r.campaign_id]?.name || r.campaign_id, product: campMap[r.campaign_id]?.product || '' }))
-    .filter(r => !product || r.product === product);
+function cbhSpan(v) {
+  const n = Number(v||0);
+  const c = n>=12?'#15803d':n>=8?'#16a34a':n>=0?'#f59e0b':'#dc2626';
+  return `<span style="color:${c}">${n.toFixed(2)}%</span>`;
 }
 
-async function fetchWeeklyCreatives(campaignId, weekStart) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/creative_weekly?creative_set_id=in.(select id from creative_sets where campaign_id=eq.${campaignId})&order=week_start.desc`, {
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-  });
-  // Simpler: fetch by joining
-  const csRes = await fetch(`${SUPABASE_URL}/rest/v1/creative_weekly?select=*,creative_sets!inner(name,campaign_id)&creative_sets.campaign_id=eq.${campaignId}&order=week_start.desc`, {
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-  });
-  return csRes.ok ? csRes.json() : [];
+function renderDailyTable(rows) {
+  if (!rows.length) { document.getElementById('tableBody').innerHTML = '<div class="empty">📭 Không có data</div>'; return; }
+
+  const actionLabel = {scale:'🚀 Scale',keep:'⏸ Keep',cut_light:'⬇ Cut light',cut_heavy:'⬇⬇ Cut heavy',suggest_pause:'🛑 Suggest pause'};
+  const f$ = v => v!=null?'$'+Number(v).toLocaleString('en',{maximumFractionDigits:2}):'?';
+  const fP = v => v!=null?Number(v).toFixed(2)+'%':'?';
+  const dir = (prev,curr,hib=true) => curr==null||prev==null?'flat':curr>prev?(hib?'up':'down'):curr<prev?(hib?'down':'up'):'flat';
+  const arr = (p,c) => c==null||p==null?'→':c>p?'↑':c<p?'↓':'→';
+
+  const rowsHtml = rows.map((r,idx) => {
+    const metrics = [
+      {n:'ME',p:r.prev_spend,c:r.spend,fmt:f$,hib:false},
+      {n:'%CBH',p:r.prev_cbh_pct,c:r.cbh_pct,fmt:fP,hib:true},
+      {n:'CBH',p:r.prev_cbh,c:r.cbh,fmt:f$,hib:true},
+      {n:'CR',p:r.prev_cr,c:r.cr,fmt:fP,hib:true},
+      {n:'eCPM',p:r.prev_ecpm,c:r.ecpm,fmt:f$,hib:false},
+      {n:'CTR',p:r.prev_ctr,c:r.ctr,fmt:fP,hib:true},
+    ];
+    const metricsHtml = metrics.map(m => {
+      const cls = m.n==='%CBH'?'':dir(m.p,m.c,m.hib);
+      const pStr = m.p!=null?m.fmt(m.p):'?';
+      const cStr = m.fmt(m.c);
+      const a = arr(m.p,m.c);
+      if (m.n==='%CBH') {
+        return `<div class="metric-row"><span class="metric-name">%CBH</span><span>${cbhSpan(m.p)} ${a} ${cbhSpan(m.c)}</span></div>`;
+      }
+      return `<div class="metric-row"><span class="metric-name">${m.n}</span><span class="${cls}">${pStr} ${a} ${cStr}</span></div>`;
+    }).join('');
+
+    const cnote = r.creative_note;
+    const cnoteHtml = cnote ? `<div class="creative-note ${cnote.includes('⚠️')?'note-warn':'note-good'}">${cnote}</div>` : '<span style="color:#cbd5e1">—</span>';
+
+    return `<tr>
+      <td><div style="font-weight:500">${r.campaign}</div><div style="font-size:11px;color:#94a3b8">${r.product}</div></td>
+      <td>${r.action?`<span class="badge badge-${r.action}">${actionLabel[r.action]||r.action}</span>`:'—'}</td>
+      <td><div class="metric-block">${metricsHtml}</div></td>
+      <td>${r.insight?`<div class="insight-text">${r.insight}</div>`:'<span style="color:#cbd5e1">—</span>'}</td>
+      <td>${cnoteHtml}</td>
+      <td>${r.confidence?`<span class="conf conf-${r.confidence}"><span class="conf-dot"></span>${r.confidence}</span>`:'—'}</td>
+      <td><button class="btn-copy" onclick="copyDailyRow(${idx})">Copy</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tableBody').innerHTML = `<table>
+    <thead><tr>
+      <th>Campaign</th><th>Action</th><th>Metrics (hôm qua→hôm nay)</th>
+      <th>Insight</th><th>Creative Set Note</th><th>Confidence</th><th></th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>`;
 }
 
-async function fetchWeekOptions() {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/campaign_weekly?select=week_start,week_label&order=week_start.desc`, {
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-  });
-  const rows = await res.json();
-  const unique = [...new Map(rows.map(r => [r.week_start, r])).values()];
-  return unique;
+function copyDailyRow(idx) {
+  const r = window._dailyRows[idx];
+  const f$ = v => '$'+Math.round(Number(v)||0).toLocaleString();
+  const fP = v => Number(v||0).toFixed(2)+'%';
+  const arr = (p,c) => c==null||p==null?'→':c>p?'↑':c<p?'↓':'→';
+  const lines = [
+    'ME: '+(r.prev_spend!=null?f$(r.prev_spend):'?')+' '+arr(r.prev_spend,r.spend)+' '+f$(r.spend),
+    '%CBH: '+(r.prev_cbh_pct!=null?fP(r.prev_cbh_pct):'?')+' '+arr(r.prev_cbh_pct,r.cbh_pct)+' '+fP(r.cbh_pct),
+    'CBH: '+(r.prev_cbh!=null?f$(r.prev_cbh):'?')+' '+arr(r.prev_cbh,r.cbh)+' '+f$(r.cbh),
+    'CR'+(r.prev_cr&&r.cr>r.prev_cr?' tăng':r.prev_cr&&r.cr<r.prev_cr?' giảm':'')+': '+(r.prev_cr!=null?fP(r.prev_cr):'?')+' → '+fP(r.cr),
+    'eCPM'+(r.prev_ecpm&&r.ecpm>r.prev_ecpm?' tăng':r.prev_ecpm&&r.ecpm<r.prev_ecpm?' giảm':'')+': '+(r.prev_ecpm!=null?'$'+r.prev_ecpm:'?')+' → $'+r.ecpm,
+    'CTR'+(r.prev_ctr&&r.ctr>r.prev_ctr?' tăng':r.prev_ctr&&r.ctr<r.prev_ctr?' giảm':'')+': '+(r.prev_ctr!=null?fP(r.prev_ctr):'?')+' → '+fP(r.ctr),
+    '',
+    r.insight?'Insight: '+r.insight:'',
+    '',
+    r.action?'Plan: '+r.action.toUpperCase():'',
+  ].filter((l,i,a) => !(l===''&&a[i-1]===''));
+  navigator.clipboard.writeText(lines.join('\n')).then(() => showToast());
 }
 
-async function loadWeeklyInit() {
-  const weeks = await fetchWeekOptions();
+// ════════════════════════════════
+// WEEKLY REPORT
+// ════════════════════════════════
+
+async function initWeekly() {
+  const weeks = await api('campaign_weekly?select=week_start,week_label&order=week_start.desc');
+  const unique = [...new Map(weeks.map(r=>[r.week_start,r])).values()];
   const sel = document.getElementById('weekFilter');
-  weeks.forEach(w => {
-    const opt = document.createElement('option');
-    opt.value = w.week_start;
-    opt.textContent = `${w.week_label || w.week_start} (${w.week_start})`;
-    sel.appendChild(opt);
+  unique.forEach(w => {
+    const o = document.createElement('option');
+    o.value = w.week_start;
+    o.textContent = (w.week_label||'W?') + ' (' + w.week_start + ')';
+    sel.appendChild(o);
   });
-
-  // Load products
-  const prods = await fetchProducts();
-  const pSel = document.getElementById('weekProductFilter');
-  prods.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.name; opt.textContent = p.name;
-    pSel.appendChild(opt);
-  });
-
-  if (weeks.length) {
-    sel.value = weeks[0].week_start;
-    loadWeekly();
-  }
+  if (unique.length) { sel.value = unique[0].week_start; loadWeekly(); }
 }
 
 async function loadWeekly() {
   const weekStart = document.getElementById('weekFilter').value;
   const product = document.getElementById('weekProductFilter').value;
-  document.getElementById('weekly-table-body').innerHTML = '<div style="text-align:center;padding:32px;color:#64748b">Loading...</div>';
+  document.getElementById('weekly-table-body').innerHTML = '<div class="loading">Loading...</div>';
+  document.getElementById('weekly-cards').innerHTML = '';
 
   try {
-    const rows = await fetchWeeklyCampaigns(weekStart, product);
-
-    // Also fetch W2 and W3 for trend
-    const allWeeks = await fetch(`${SUPABASE_URL}/rest/v1/campaign_weekly?order=campaign_id.asc,week_start.desc`, {
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-    }).then(r => r.json());
+    // Fetch all campaign weekly data
+    const allWeekly = await api('campaign_weekly?order=campaign_id.asc,week_start.desc');
+    // Fetch campaign info
+    const camps = await api('campaigns?select=id,name,product_id,products(name)&status=eq.active');
+    const campMap = {};
+    camps.forEach(c => { campMap[c.id] = {name:c.name, product:c.products?.name||''}; });
 
     // Group by campaign
     const byCamp = {};
-    allWeeks.forEach(r => {
+    allWeekly.forEach(r => {
       if (!byCamp[r.campaign_id]) byCamp[r.campaign_id] = [];
       byCamp[r.campaign_id].push(r);
     });
 
-    renderWeeklySummary(rows);
+    // Get W1 rows for selected week
+    let w1Rows = allWeekly.filter(r => r.week_start === weekStart);
+    if (!weekStart && allWeekly.length) {
+      const latestWeek = allWeekly[0].week_start;
+      w1Rows = allWeekly.filter(r => r.week_start === latestWeek);
+    }
+
+    // Attach campaign info
+    let rows = w1Rows.map(r => ({...r, campaign: campMap[r.campaign_id]?.name||r.campaign_id, product: campMap[r.campaign_id]?.product||''}));
+    if (product) rows = rows.filter(r => r.product === product);
+
+    window._weeklyRows = rows;
+    window._byCamp = byCamp;
+
+    renderWeeklyCards(rows);
     renderWeeklyTable(rows, byCamp);
-    document.getElementById('weekly-row-count').textContent = `${rows.length} campaigns`;
+    document.getElementById('weekly-row-count').textContent = rows.length + ' campaigns';
   } catch(e) {
-    document.getElementById('weekly-table-body').innerHTML = `<div style="text-align:center;padding:32px;color:#ef4444">Error: ${e.message}</div>`;
+    document.getElementById('weekly-table-body').innerHTML = '<div class="empty">❌ ' + e.message + '</div>';
   }
 }
 
-function renderWeeklySummary(rows) {
-  const w1Rows = rows.filter(r => r.action);
-  const totalSpend = rows.reduce((s,r) => s + (r.spend||0), 0);
-  const avgCbh = rows.length ? (rows.reduce((s,r) => s + (r.cbh_pct||0), 0)/rows.length).toFixed(1) : 0;
-  const scale = rows.filter(r => r.action==='scale').length;
-  const cut = rows.filter(r => r.action?.includes('cut')).length;
-
-  document.getElementById('weekly-summary-cards').innerHTML = `
-    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
-      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Campaigns</div>
-      <div style="font-size:22px;font-weight:600">${rows.length}</div>
-    </div>
-    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
-      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Total Spend W1</div>
-      <div style="font-size:22px;font-weight:600">$${totalSpend.toLocaleString('en',{maximumFractionDigits:0})}</div>
-    </div>
-    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
-      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Avg %CBH W1</div>
-      <div style="font-size:22px;font-weight:600;color:${avgCbh>=12?'#16a34a':avgCbh<0?'#dc2626':'#f59e0b'}">${avgCbh}%</div>
-    </div>
-    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
-      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Scale</div>
-      <div style="font-size:22px;font-weight:600;color:#16a34a">${scale}</div>
-    </div>
-    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
-      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Cut / Pause</div>
-      <div style="font-size:22px;font-weight:600;color:#dc2626">${cut}</div>
-    </div>
-  `;
+function renderWeeklyCards(rows) {
+  const spend = rows.reduce((s,r)=>s+(r.spend||0),0);
+  const avg = rows.length?(rows.reduce((s,r)=>s+(r.cbh_pct||0),0)/rows.length).toFixed(1):0;
+  const scale = rows.filter(r=>r.action==='scale').length;
+  const cut = rows.filter(r=>r.action&&r.action.includes('cut')).length+rows.filter(r=>r.action==='suggest_pause').length;
+  const cc = avg>=12?'#16a34a':avg<0?'#dc2626':'#f59e0b';
+  document.getElementById('weekly-cards').innerHTML = `
+    <div class="card"><div class="card-label">Campaigns</div><div class="card-val">${rows.length}</div></div>
+    <div class="card"><div class="card-label">Total Spend W1</div><div class="card-val">$${spend.toLocaleString('en',{maximumFractionDigits:0})}</div></div>
+    <div class="card"><div class="card-label">Avg %CBH W1</div><div class="card-val" style="color:${cc}">${avg}%</div></div>
+    <div class="card"><div class="card-label">Scale</div><div class="card-val" style="color:#16a34a">${scale}</div></div>
+    <div class="card"><div class="card-label">Cut / Pause</div><div class="card-val" style="color:#dc2626">${cut}</div></div>`;
 }
 
-function fmt$(v) { return v!=null ? '$'+Number(v).toLocaleString('en',{maximumFractionDigits:0}) : '?'; }
-function fmtP(v) { return v!=null ? Number(v).toFixed(2)+'%' : '?'; }
-function trend$(w3,w2,w1) { return `${fmt$(w3)} → ${fmt$(w2)} → ${fmt$(w1)}`; }
-function trendP(w3,w2,w1) { return `${fmtP(w3)} → ${fmtP(w2)} → ${fmtP(w1)}`; }
+function fmtW$(v) { return v!=null?'$'+Math.round(Number(v)).toLocaleString():'?'; }
+function fmtWP(v) { return v!=null?Number(v).toFixed(2)+'%':'?'; }
+function cbhTd(v) {
+  const n=Number(v||0);
+  const c=n>=12?'#15803d':n>=8?'#16a34a':n>=0?'#f59e0b':'#dc2626';
+  return `<span style="color:${c};font-weight:500">${n.toFixed(2)}%</span>`;
+}
 
 function renderWeeklyTable(rows, byCamp) {
-  if (!rows.length) {
-    document.getElementById('weekly-table-body').innerHTML = '<div style="text-align:center;padding:48px;color:#94a3b8">Không có data</div>';
-    return;
-  }
+  if (!rows.length) { document.getElementById('weekly-table-body').innerHTML = '<div class="empty">📭 Không có data</div>'; return; }
+  const aLabel={scale:'🚀 Scale',keep:'⏸ Keep',cut_light:'⬇ Cut light',cut_heavy:'⬇⬇ Cut heavy',suggest_pause:'🛑 Pause'};
+  const aColor={scale:'#dcfce7',keep:'#fef9c3',cut_light:'#ffedd5',cut_heavy:'#fee2e2',suggest_pause:'#f3e8ff'};
+  const aText={scale:'#15803d',keep:'#854d0e',cut_light:'#c2410c',cut_heavy:'#b91c1c',suggest_pause:'#7c3aed'};
 
-  const actionLabel = { scale:'🚀 Scale', keep:'⏸ Keep', cut_light:'⬇ Cut light', cut_heavy:'⬇⬇ Cut heavy', suggest_pause:'🛑 Pause' };
-  const actionColor = { scale:'#dcfce7', keep:'#fef9c3', cut_light:'#ffedd5', cut_heavy:'#fee2e2', suggest_pause:'#f3e8ff' };
-  const actionText = { scale:'#15803d', keep:'#854d0e', cut_light:'#c2410c', cut_heavy:'#b91c1c', suggest_pause:'#7c3aed' };
-
-  window._weeklyRows = rows;
-  window._byCamp = byCamp;
-
-  const rowsHtml = rows.map((r, idx) => {
-    const history = byCamp[r.campaign_id] || [];
-    const w1 = history[0], w2 = history[1], w3 = history[2];
-
-    return `
-    <tr style="border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#fafbff'" onmouseout="this.style.background='white'">
-      <td style="padding:12px 14px;vertical-align:top">
-        <div style="font-weight:500;color:#1e293b">${r.campaign}</div>
-        <div style="font-size:11px;color:#94a3b8">${r.product}</div>
-      </td>
-      <td style="padding:12px 14px;vertical-align:top">
-        ${r.action ? `<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${actionColor[r.action]||'#f1f5f9'};color:${actionText[r.action]||'#64748b'}">${actionLabel[r.action]||r.action}</span>` : '—'}
-      </td>
-      <td style="padding:12px 14px;vertical-align:top;font-size:12px;color:#475569;line-height:1.9">
-        <div>ME: ${trend$(w3?.spend, w2?.spend, w1?.spend)}</div>
-        <div>%CBH: ${trendP(w3?.cbh_pct, w2?.cbh_pct, w1?.cbh_pct)}</div>
-        <div>CBH: ${trend$(w3?.cbh, w2?.cbh, w1?.cbh)}</div>
-        <div>CTR: ${trendP(w3?.ctr, w2?.ctr, w1?.ctr)}</div>
-        <div>eCPM: ${trend$(w3?.ecpm, w2?.ecpm, w1?.ecpm)}</div>
-        <div>CR: ${trendP(w3?.cr, w2?.cr, w1?.cr)}</div>
+  const rowsHtml = rows.map((r,idx)=>{
+    const h = byCamp[r.campaign_id]||[];
+    const w1=h[0],w2=h[1],w3=h[2];
+    return `<tr style="border-bottom:1px solid #f1f5f9">
+      <td><div style="font-weight:500">${r.campaign}</div><div style="font-size:11px;color:#94a3b8">${r.product}</div></td>
+      <td>${r.action?`<span class="badge" style="background:${aColor[r.action]||'#f1f5f9'};color:${aText[r.action]||'#64748b'}">${aLabel[r.action]||r.action}</span>`:'—'}</td>
+      <td style="font-size:12px;color:#475569;line-height:1.9">
+        <div>ME: ${fmtW$(w3?.spend)} → ${fmtW$(w2?.spend)} → ${fmtW$(w1?.spend)}</div>
+        <div>%CBH: ${cbhTd(w3?.cbh_pct)} → ${cbhTd(w2?.cbh_pct)} → ${cbhTd(w1?.cbh_pct)}</div>
+        <div>CBH: ${fmtW$(w3?.cbh)} → ${fmtW$(w2?.cbh)} → ${fmtW$(w1?.cbh)}</div>
+        <div>CTR: ${fmtWP(w3?.ctr)} → ${fmtWP(w2?.ctr)} → ${fmtWP(w1?.ctr)}</div>
+        <div>eCPM: ${fmtW$(w3?.ecpm)} → ${fmtW$(w2?.ecpm)} → ${fmtW$(w1?.ecpm)}</div>
+        <div>CR: ${fmtWP(w3?.cr)} → ${fmtWP(w2?.cr)} → ${fmtWP(w1?.cr)}</div>
         <div>PO: ${w3?.purchases||'?'} → ${w2?.purchases||'?'} → ${w1?.purchases||'?'}</div>
       </td>
-      <td style="padding:12px 14px;vertical-align:top;font-size:12px;color:#475569;max-width:220px">
-        ${r.insight ? r.insight.split('\n').map(l => l.trim() ? `<div style="margin-bottom:4px">${l}</div>` : '').join('') : '<span style="color:#cbd5e1">—</span>'}
+      <td style="font-size:12px;color:#475569;max-width:200px">
+        ${r.insight?r.insight.split('\n').map(l=>l.trim()?`<div style="margin-bottom:3px">${l}</div>`:'').join(''):'<span style="color:#cbd5e1">—</span>'}
       </td>
-      <td style="padding:12px 14px;vertical-align:top;font-size:12px;color:#475569">
-        ${r.plan || '<span style="color:#cbd5e1">—</span>'}
-      </td>
-      <td style="padding:12px 14px;vertical-align:top;white-space:nowrap">
-        <button onclick="copyWeeklyRow(${idx})" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;color:#475569;margin-bottom:4px">Copy</button><br>
-        <button onclick="toggleCreatives('${r.campaign_id}')" id="cs-btn-${r.campaign_id}" style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;color:#7c3aed">Creative Sets</button>
+      <td style="font-size:12px;color:#475569;max-width:180px">${r.plan||'<span style="color:#cbd5e1">—</span>'}</td>
+      <td style="white-space:nowrap;vertical-align:middle">
+        <button class="btn-copy" onclick="copyWeeklyRow(${idx})" style="margin-bottom:4px">Copy</button><br>
+        <button onclick="toggleCS('${r.campaign_id}',this)" style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;color:#7c3aed;white-space:nowrap">Creative Sets</button>
       </td>
     </tr>
     <tr id="cs-row-${r.campaign_id}" style="display:none;background:#fafbff">
-      <td colspan="6" style="padding:0 14px 12px 40px">
-        <div id="cs-content-${r.campaign_id}" style="font-size:12px;color:#475569">Loading...</div>
+      <td colspan="6" style="padding:0 14px 12px 28px">
+        <div id="cs-content-${r.campaign_id}"><div class="loading">Loading...</div></div>
       </td>
     </tr>`;
   }).join('');
 
-  document.getElementById('weekly-table-body').innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead>
-        <tr style="background:#f8fafc">
-          <th style="text-align:left;padding:10px 14px;color:#64748b;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0">Campaign</th>
-          <th style="text-align:left;padding:10px 14px;color:#64748b;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0">Action</th>
-          <th style="text-align:left;padding:10px 14px;color:#64748b;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0">Metrics (W3→W2→W1)</th>
-          <th style="text-align:left;padding:10px 14px;color:#64748b;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0">Insight</th>
-          <th style="text-align:left;padding:10px 14px;color:#64748b;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0">Plan</th>
-          <th style="border-bottom:1px solid #e2e8f0"></th>
-        </tr>
-      </thead>
-      <tbody>${rowsHtml}</tbody>
-    </table>`;
-}
-
-async function toggleCreatives(campaignId) {
-  const row = document.getElementById('cs-row-' + campaignId);
-  const btn = document.getElementById('cs-btn-' + campaignId);
-  const content = document.getElementById('cs-content-' + campaignId);
-
-  if (row.style.display !== 'none') {
-    row.style.display = 'none';
-    btn.textContent = 'Creative Sets';
-    return;
-  }
-
-  row.style.display = 'table-row';
-  btn.textContent = 'Hide';
-
-  // Fetch creative sets for this campaign
-  try {
-    // Get creative set IDs for campaign
-    const csRes = await fetch(`${SUPABASE_URL}/rest/v1/creative_sets?campaign_id=eq.${campaignId}&status=eq.active&select=id,name,created_at&order=created_at.desc`, {
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-    });
-    const creativeSets = await csRes.json();
-    if (!creativeSets.length) { content.innerHTML = '<em>Không có creative set nào</em>'; return; }
-
-    const csIdList = creativeSets.map(cs => cs.id).join(',');
-    const csMap = {};
-    creativeSets.forEach(cs => { csMap[cs.id] = { name: cs.name, created_at: cs.created_at }; });
-
-    // Fetch weekly data for all creative sets
-    const weeklyRes = await fetch(`${SUPABASE_URL}/rest/v1/creative_weekly?creative_set_id=in.(${csIdList})&order=creative_set_id.asc,week_start.desc&select=id,creative_set_id,week_start,week_label,spend,cbh_pct,cbh,created_on,suggestion`, {
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-    });
-    const weeklyData = await weeklyRes.json();
-
-    // Group by creative_set_id
-    const byCs = {};
-    weeklyData.forEach(r => {
-      if (!byCs[r.creative_set_id]) byCs[r.creative_set_id] = [];
-      byCs[r.creative_set_id].push(r);
-    });
-
-    // Only show creative sets that have data
-    const csWithData = Object.keys(byCs).filter(id => csMap[id]);
-    if (!csWithData.length) { content.innerHTML = '<em>Chưa có weekly data cho creative sets</em>'; return; }
-
-    // Render table
-    const rows = csWithData.map(csId => {
-      const name = csMap[csId]?.name || csId;
-      const createdAt = csMap[csId]?.created_at ? new Date(csMap[csId].created_at).toLocaleDateString('vi-VN') : '—';
-      const weeks = byCs[csId]; // sorted desc: W1, W2, W3
-      const w1 = weeks[0], w2 = weeks[1], w3 = weeks[2];
-
-      const fmt$ = v => v!=null ? '$'+Math.round(Number(v)).toLocaleString() : '?';
-      const fmtP = v => v!=null ? Number(v).toFixed(2)+'%' : '?';
-
-      // Color code %CBH
-      const cbhColor = w1?.cbh_pct >= 8 ? '#16a34a' : w1?.cbh_pct < 0 ? '#dc2626' : '#f59e0b';
-
-      return `<tr style="border-bottom:1px solid #e2e8f0">
-        <td style="padding:8px 12px;font-size:12px;color:#475569;min-width:220px">${name}</td>
-        <td style="padding:8px 12px;font-size:12px;color:#94a3b8">${createdAt}</td>
-        <td style="padding:8px 12px;font-size:12px;color:#64748b">${fmt$(w3?.spend)} → ${fmt$(w2?.spend)} → ${fmt$(w1?.spend)}</td>
-        <td style="padding:8px 12px;font-size:12px;font-weight:500;color:${cbhColor}">${fmtP(w3?.cbh_pct)} → ${fmtP(w2?.cbh_pct)} → ${fmtP(w1?.cbh_pct)}</td>
-        <td style="padding:8px 12px;font-size:12px;color:#64748b">${fmt$(w3?.cbh)} → ${fmt$(w2?.cbh)} → ${fmt$(w1?.cbh)}</td>
-      </tr>`;
-    }).join('');
-
-    content.innerHTML = `
-      <table style="width:100%;border-collapse:collapse;margin-top:4px">
-        <thead>
-          <tr style="background:#f1f5f9">
-            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">Creative Set</th>
-            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">Created</th>
-            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">ME (W2→W1)</th>
-            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">%CBH (W2→W1)</th>
-            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">CBH (W2→W1)</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>`;
-
-  } catch(e) {
-    content.innerHTML = `<em style="color:#ef4444">Error: ${e.message}</em>`;
-  }
+  document.getElementById('weekly-table-body').innerHTML = `<table>
+    <thead><tr>
+      <th>Campaign</th><th>Action</th><th>Metrics (W3→W2→W1)</th>
+      <th>Insight</th><th>Plan</th><th></th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>`;
 }
 
 function copyWeeklyRow(idx) {
   const r = window._weeklyRows[idx];
-  const history = window._byCamp[r.campaign_id] || [];
-  const w1 = history[0], w2 = history[1], w3 = history[2];
-
-  const fmt$ = v => v!=null ? '$'+Math.round(v).toLocaleString() : '?';
-  const fmtP = v => v!=null ? Number(v).toFixed(2)+'%' : '?';
-
+  const h = window._byCamp[r.campaign_id]||[];
+  const w1=h[0],w2=h[1],w3=h[2];
   const lines = [
-    `Weekly — ${r.campaign}`,
-    '',
-    `- ME: ${fmt$(w3?.spend)} → ${fmt$(w2?.spend)} → ${fmt$(w1?.spend)}`,
-    `- %CBH: ${fmtP(w3?.cbh_pct)} → ${fmtP(w2?.cbh_pct)} → ${fmtP(w1?.cbh_pct)}`,
-    `- CBH: ${fmt$(w3?.cbh)} → ${fmt$(w2?.cbh)} → ${fmt$(w1?.cbh)}`,
-    `- CTR: ${fmtP(w3?.ctr)} → ${fmtP(w2?.ctr)} → ${fmtP(w1?.ctr)}`,
-    `- eCPM: ${fmt$(w3?.ecpm)} → ${fmt$(w2?.ecpm)} → ${fmt$(w1?.ecpm)}`,
-    `- CR: ${fmtP(w3?.cr)} → ${fmtP(w2?.cr)} → ${fmtP(w1?.cr)}`,
-    `- PO: ${w3?.purchases||'?'} → ${w2?.purchases||'?'} → ${w1?.purchases||'?'}`,
+    'Weekly — '+r.campaign,'',
+    '- ME: '+fmtW$(w3?.spend)+' → '+fmtW$(w2?.spend)+' → '+fmtW$(w1?.spend),
+    '- %CBH: '+fmtWP(w3?.cbh_pct)+' → '+fmtWP(w2?.cbh_pct)+' → '+fmtWP(w1?.cbh_pct),
+    '- CBH: '+fmtW$(w3?.cbh)+' → '+fmtW$(w2?.cbh)+' → '+fmtW$(w1?.cbh),
+    '- CTR: '+fmtWP(w3?.ctr)+' → '+fmtWP(w2?.ctr)+' → '+fmtWP(w1?.ctr),
+    '- eCPM: '+fmtW$(w3?.ecpm)+' → '+fmtW$(w2?.ecpm)+' → '+fmtW$(w1?.ecpm),
+    '- CR: '+fmtWP(w3?.cr)+' → '+fmtWP(w2?.cr)+' → '+fmtWP(w1?.cr),
+    '- PO: '+(w3?.purchases||'?')+' → '+(w2?.purchases||'?')+' → '+(w1?.purchases||'?'),
   ];
-
-  if (r.insight) {
-    lines.push('');
-    lines.push('Insight:');
-    r.insight.split('\n').forEach(l => { if(l.trim()) lines.push(l.trim()); });
-  }
-  if (r.plan) {
-    lines.push('');
-    lines.push('Plan:');
-    lines.push(r.plan);
-  }
-
-  navigator.clipboard.writeText(lines.join('\n')).then(() => {
-    const toast = document.getElementById('toast');
-    if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
-  });
+  if (r.insight) { lines.push(''); lines.push('Insight:'); r.insight.split('\n').forEach(l=>{if(l.trim())lines.push(l.trim());}); }
+  if (r.plan) { lines.push(''); lines.push('Plan:'); lines.push(r.plan); }
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast());
 }
-</script>
 
+async function toggleCS(campId, btn) {
+  const row = document.getElementById('cs-row-'+campId);
+  const content = document.getElementById('cs-content-'+campId);
+  if (row.style.display!=='none') { row.style.display='none'; btn.textContent='Creative Sets'; return; }
+  row.style.display='table-row'; btn.textContent='Hide';
+
+  try {
+    const selectedWeek = document.getElementById('weekFilter').value;
+
+    // Fetch creative sets for campaign
+    const cs = await api('creative_sets?campaign_id=eq.'+campId+'&status=eq.active&select=id,name');
+    if (!cs.length) { content.innerHTML='<em>Không có creative set</em>'; return; }
+    const csMap = {};
+    cs.forEach(c=>{ csMap[c.id]=c.name; });
+    const ids = cs.map(c=>c.id).join(',');
+
+    // Fetch weekly data
+    const wd = await api('creative_weekly?creative_set_id=in.('+ids+')&order=creative_set_id.asc,week_start.desc&select=id,creative_set_id,week_start,week_label,spend,cbh_pct,cbh,created_on,suggestion');
+
+    // Group by creative set
+    const byCs = {};
+    wd.forEach(r=>{ if(!byCs[r.creative_set_id])byCs[r.creative_set_id]=[]; byCs[r.creative_set_id].push(r); });
+
+    const csWithData = Object.keys(byCs).filter(id=>csMap[id]);
+    if (!csWithData.length) { content.innerHTML='<em>Chưa có weekly data</em>'; return; }
+
+    // Detect new and offed
+    const newSets=[], offedSets=[];
+    csWithData.forEach(csId=>{
+      const weeks=byCs[csId];
+      const w1=weeks[0],w2=weeks[1];
+      if(w1?.created_on && selectedWeek && w1.created_on>=selectedWeek) newSets.push({name:csMap[csId],created:w1.created_on});
+      if(w2&&Number(w2.spend||0)>0&&w1&&Number(w1.spend||0)===0) offedSets.push({name:csMap[csId],w2spend:w2.spend});
+    });
+
+    let banners='';
+    if(newSets.length) banners+=`<div class="banner banner-new">🆕 <b>New this week:</b> ${newSets.map(s=>s.name+' ('+s.created+')').join(' · ')}</div>`;
+    if(offedSets.length) banners+=`<div class="banner banner-off">🔴 <b>Offed this week:</b> ${offedSets.map(s=>s.name+' (W2: $'+Math.round(s.w2spend)+' → W1: $0)').join(' · ')}</div>`;
+
+    const csRows = csWithData.map((csId,ridx)=>{
+      const name=csMap[csId];
+      const weeks=byCs[csId];
+      const w1=weeks[0],w2=weeks[1];
+      const isNew=w1?.created_on&&selectedWeek&&w1.created_on>=selectedWeek;
+      const isOffed=w2&&Number(w2.spend||0)>0&&w1&&Number(w1.spend||0)===0;
+      const sugg=w1?.suggestion||'';
+      const suggColor=sugg.includes('Tách')?'#7c3aed':sugg.includes('OFF')?'#dc2626':sugg.includes('WARNING')?'#d97706':sugg.includes('ON')?'#16a34a':'#64748b';
+
+      return `<tr style="${isOffed?'opacity:0.6':''}">
+        <td style="min-width:220px">
+          ${isNew?'<span class="tag-new">NEW</span>':''}
+          ${isOffed?'<span class="tag-off">OFF</span>':''}
+          ${name}
+        </td>
+        <td style="color:#94a3b8;white-space:nowrap;font-size:11px">${w1?.created_on||'—'}</td>
+        <td style="white-space:nowrap">${fmtW$(w2?.spend)} → ${fmtW$(w1?.spend)}</td>
+        <td style="white-space:nowrap">${cbhTd(w2?.cbh_pct)} → ${cbhTd(w1?.cbh_pct)}</td>
+        <td style="white-space:nowrap">${fmtW$(w2?.cbh)} → ${fmtW$(w1?.cbh)}</td>
+        <td style="color:${suggColor};max-width:180px">${sugg||'<span style="color:#cbd5e1">—</span>'}</td>
+        <td>
+          <button onclick="copyCS('${name.replace(/'/g,"\\'")}','${w1?.created_on||''}',${Number(w2?.spend||0)},${Number(w1?.spend||0)},${Number(w2?.cbh_pct||0)},${Number(w1?.cbh_pct||0)},${Number(w2?.cbh||0)},${Number(w1?.cbh||0)},'${sugg.replace(/'/g,"\\'")}')" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#475569">Copy</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    content.innerHTML = banners + `<table class="cs-table">
+      <thead><tr>
+        <th>Creative Set</th><th>Created</th>
+        <th>ME (W2→W1)</th><th>%CBH (W2→W1)</th><th>CBH (W2→W1)</th>
+        <th>Suggestion</th><th></th>
+      </tr></thead>
+      <tbody>${csRows}</tbody>
+    </table>`;
+
+  } catch(e) {
+    content.innerHTML='<em style="color:#ef4444">Error: '+e.message+'</em>';
+  }
+}
+
+function copyCS(name,created,me2,me1,cbhp2,cbhp1,cbh2,cbh1,sugg) {
+  const f$=v=>'$'+Math.round(Number(v)||0).toLocaleString();
+  const fP=v=>Number(v||0).toFixed(2)+'%';
+  const lines=[name,'Created: '+(created||'—'),'',
+    '- ME: '+f$(me2)+' → '+f$(me1),
+    '- %CBH: '+fP(cbhp2)+' → '+fP(cbhp1),
+    '- CBH: '+f$(cbh2)+' → '+f$(cbh1),
+  ];
+  if(sugg){lines.push('');lines.push('Suggestion: '+sugg);}
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast());
+}
+
+function showToast() {
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ── Start ──
+loadProducts().then(()=>loadReport());
+</script>
 </body>
 </html>
-<!-- WEEKLY TAB INJECTION - added below existing content -->
