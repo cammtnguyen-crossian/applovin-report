@@ -642,7 +642,7 @@ async function toggleCreatives(campaignId) {
     creativeSets.forEach(cs => { csMap[cs.id] = { name: cs.name, created_at: cs.created_at }; });
 
     // Fetch weekly data for all creative sets
-    const weeklyRes = await fetch(`${SUPABASE_URL}/rest/v1/creative_weekly?creative_set_id=in.(${csIdList})&order=creative_set_id.asc,week_start.desc`, {
+    const weeklyRes = await fetch(`${SUPABASE_URL}/rest/v1/creative_weekly?creative_set_id=in.(${csIdList})&order=creative_set_id.asc,week_start.desc&select=id,creative_set_id,week_start,week_label,spend,cbh_pct,cbh,created_on,suggestion`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     });
     const weeklyData = await weeklyRes.json();
@@ -655,7 +655,7 @@ async function toggleCreatives(campaignId) {
     });
 
     // Only show creative sets that have data
-    const csWithData = Object.keys(byCs);
+    const csWithData = Object.keys(byCs).filter(id => csMap[id]);
     if (!csWithData.length) { content.innerHTML = '<em>Chưa có weekly data cho creative sets</em>'; return; }
 
     // Render table
@@ -686,9 +686,9 @@ async function toggleCreatives(campaignId) {
           <tr style="background:#f1f5f9">
             <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">Creative Set</th>
             <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">Created</th>
-            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">ME (W3→W2→W1)</th>
-            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">%CBH (W3→W2→W1)</th>
-            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">CBH (W3→W2→W1)</th>
+            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">ME (W2→W1)</th>
+            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">%CBH (W2→W1)</th>
+            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">CBH (W2→W1)</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
