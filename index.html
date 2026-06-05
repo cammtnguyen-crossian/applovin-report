@@ -586,8 +586,14 @@ function renderWeeklyTable(rows, byCamp) {
       <td style="padding:12px 14px;vertical-align:top;font-size:12px;color:#475569">
         ${r.plan || '<span style="color:#cbd5e1">—</span>'}
       </td>
-      <td style="padding:12px 14px;vertical-align:top">
-        <button onclick="copyWeeklyRow(${idx})" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;color:#475569">Copy</button>
+      <td style="padding:12px 14px;vertical-align:top;white-space:nowrap">
+        <button onclick="copyWeeklyRow(${idx})" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;color:#475569;margin-bottom:4px">Copy</button><br>
+        <button onclick="toggleCreatives('${r.campaign_id}')" id="cs-btn-${r.campaign_id}" style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;color:#7c3aed">Creative Sets</button>
+      </td>
+    </tr>
+    <tr id="cs-row-${r.campaign_id}" style="display:none;background:#fafbff">
+      <td colspan="6" style="padding:0 14px 12px 40px">
+        <div id="cs-content-${r.campaign_id}" style="font-size:12px;color:#475569">Loading...</div>
       </td>
     </tr>`;
   }).join('');
@@ -606,6 +612,91 @@ function renderWeeklyTable(rows, byCamp) {
       </thead>
       <tbody>${rowsHtml}</tbody>
     </table>`;
+}
+
+async function toggleCreatives(campaignId) {
+  const row = document.getElementById('cs-row-' + campaignId);
+  const btn = document.getElementById('cs-btn-' + campaignId);
+  const content = document.getElementById('cs-content-' + campaignId);
+
+  if (row.style.display !== 'none') {
+    row.style.display = 'none';
+    btn.textContent = 'Creative Sets';
+    return;
+  }
+
+  row.style.display = 'table-row';
+  btn.textContent = 'Hide';
+
+  // Fetch creative sets for this campaign
+  try {
+    // Get creative set IDs for campaign
+    const csRes = await fetch(`${SUPABASE_URL}/rest/v1/creative_sets?campaign_id=eq.${campaignId}&status=eq.active&select=id,name,created_at&order=created_at.desc`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    });
+    const creativeSets = await csRes.json();
+    if (!creativeSets.length) { content.innerHTML = '<em>Không có creative set nào</em>'; return; }
+
+    const csIdList = creativeSets.map(cs => cs.id).join(',');
+    const csMap = {};
+    creativeSets.forEach(cs => { csMap[cs.id] = { name: cs.name, created_at: cs.created_at }; });
+
+    // Fetch weekly data for all creative sets
+    const weeklyRes = await fetch(`${SUPABASE_URL}/rest/v1/creative_weekly?creative_set_id=in.(${csIdList})&order=creative_set_id.asc,week_start.desc`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    });
+    const weeklyData = await weeklyRes.json();
+
+    // Group by creative_set_id
+    const byCs = {};
+    weeklyData.forEach(r => {
+      if (!byCs[r.creative_set_id]) byCs[r.creative_set_id] = [];
+      byCs[r.creative_set_id].push(r);
+    });
+
+    // Only show creative sets that have data
+    const csWithData = Object.keys(byCs);
+    if (!csWithData.length) { content.innerHTML = '<em>Chưa có weekly data cho creative sets</em>'; return; }
+
+    // Render table
+    const rows = csWithData.map(csId => {
+      const name = csMap[csId]?.name || csId;
+      const createdAt = csMap[csId]?.created_at ? new Date(csMap[csId].created_at).toLocaleDateString('vi-VN') : '—';
+      const weeks = byCs[csId]; // sorted desc: W1, W2, W3
+      const w1 = weeks[0], w2 = weeks[1], w3 = weeks[2];
+
+      const fmt$ = v => v!=null ? '$'+Math.round(Number(v)).toLocaleString() : '?';
+      const fmtP = v => v!=null ? Number(v).toFixed(2)+'%' : '?';
+
+      // Color code %CBH
+      const cbhColor = w1?.cbh_pct >= 8 ? '#16a34a' : w1?.cbh_pct < 0 ? '#dc2626' : '#f59e0b';
+
+      return `<tr style="border-bottom:1px solid #e2e8f0">
+        <td style="padding:8px 12px;font-size:12px;color:#475569;min-width:220px">${name}</td>
+        <td style="padding:8px 12px;font-size:12px;color:#94a3b8">${createdAt}</td>
+        <td style="padding:8px 12px;font-size:12px;color:#64748b">${fmt$(w3?.spend)} → ${fmt$(w2?.spend)} → ${fmt$(w1?.spend)}</td>
+        <td style="padding:8px 12px;font-size:12px;font-weight:500;color:${cbhColor}">${fmtP(w3?.cbh_pct)} → ${fmtP(w2?.cbh_pct)} → ${fmtP(w1?.cbh_pct)}</td>
+        <td style="padding:8px 12px;font-size:12px;color:#64748b">${fmt$(w3?.cbh)} → ${fmt$(w2?.cbh)} → ${fmt$(w1?.cbh)}</td>
+      </tr>`;
+    }).join('');
+
+    content.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;margin-top:4px">
+        <thead>
+          <tr style="background:#f1f5f9">
+            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">Creative Set</th>
+            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">Created</th>
+            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">ME (W3→W2→W1)</th>
+            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">%CBH (W3→W2→W1)</th>
+            <th style="text-align:left;padding:7px 12px;font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.4px">CBH (W3→W2→W1)</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+  } catch(e) {
+    content.innerHTML = `<em style="color:#ef4444">Error: ${e.message}</em>`;
+  }
 }
 
 function copyWeeklyRow(idx) {
