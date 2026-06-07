@@ -171,6 +171,34 @@ function switchTab(tab) {
 // DAILY REPORT
 // ════════════════════════════════
 
+function renderInsight(raw) {
+  if (!raw) return '<span style="color:#cbd5e1">—</span>';
+  let parsed;
+  try {
+    // Try parse as JSON
+    const clean = raw.replace(/^"|"$/g,'').replace(/\\"/g,'"').replace(/\"/g,'"');
+    parsed = JSON.parse(clean);
+  } catch(e) {
+    // Fallback: show as plain text
+    return `<div class="insight-text">${raw}</div>`;
+  }
+
+  const layers = [
+    {key:'observation', label:'Observation', color:'#3b82f6'},
+    {key:'driver_analysis', label:'Driver', color:'#8b5cf6'},
+    {key:'root_cause', label:'Root Cause', color:'#f59e0b'},
+    {key:'insight', label:'Insight', color:'#10b981'},
+    {key:'recommendation', label:'Action', color:'#ef4444'},
+  ];
+
+  return layers.filter(l => parsed[l.key]).map(l =>
+    `<div style="margin-bottom:6px">
+      <span style="font-size:10px;font-weight:600;color:${l.color};text-transform:uppercase;letter-spacing:.4px">${l.label}</span>
+      <div style="font-size:12px;color:#475569;line-height:1.5;margin-top:2px">${parsed[l.key]}</div>
+    </div>`
+  ).join('');
+}
+
 async function loadProducts() {
   const prods = await api('products?select=name&status=eq.active&order=name.asc');
   const sel = document.getElementById('productFilter');
@@ -265,7 +293,9 @@ function renderDailyTable(rows) {
       <td><div style="font-weight:500">${r.campaign}</div><div style="font-size:11px;color:#94a3b8">${r.product}</div></td>
       <td>${r.action?`<span class="badge badge-${r.action}">${actionLabel[r.action]||r.action}</span>`:'—'}</td>
       <td><div class="metric-block">${metricsHtml}</div></td>
-      <td>${r.insight?`<div class="insight-text">${r.insight}</div>`:'<span style="color:#cbd5e1">—</span>'}</td>
+      <td style="max-width:260px">
+        ${renderInsight(r.insight)}
+      </td>
       <td>${cnoteHtml}</td>
       <td>${r.confidence?`<span class="conf conf-${r.confidence}"><span class="conf-dot"></span>${r.confidence}</span>`:'—'}</td>
       <td><button class="btn-copy" onclick="copyDailyRow(${idx})">Copy</button></td>
