@@ -59,6 +59,7 @@
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
   .toast.show { opacity: 1; }
   .loading { text-align: center; padding: 48px; color: #64748b; }
+  [title] { position: relative; }
   .empty { text-align: center; padding: 48px; color: #94a3b8; }
   .cs-table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 12px; }
   .cs-table th { text-align: left; padding: 7px 12px; background: #f1f5f9; color: #64748b; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .4px; }
@@ -171,32 +172,98 @@ function switchTab(tab) {
 // DAILY REPORT
 // ════════════════════════════════
 
-function renderInsight(raw) {
+function renderCreativeNote(raw) {
   if (!raw) return '<span style="color:#cbd5e1">—</span>';
-  let parsed;
+  let contributors;
   try {
-    // Try parse as JSON
     const clean = raw.replace(/^"|"$/g,'').replace(/\\"/g,'"').replace(/\"/g,'"');
-    parsed = JSON.parse(clean);
+    contributors = JSON.parse(clean);
+    if (!Array.isArray(contributors)) throw new Error();
   } catch(e) {
-    // Fallback: show as plain text
-    return `<div class="insight-text">${raw}</div>`;
+    // Legacy text format
+    const isWarn = raw.includes('⚠️');
+    const isGood = raw.includes('✅');
+    const cls = isWarn && isGood ? '' : isWarn ? 'note-warn' : isGood ? 'note-good' : '';
+    return `<div class="creative-note ${cls}" style="font-size:11px">${raw}</div>`;
   }
 
+  const pos = contributors.filter(c=>c.type==='positive');
+  const neg = contributors.filter(c=>c.type==='negative');
+  let html = '';
+
+  if (pos.length) {
+    html += pos.map(c =>
+      `<div style="font-size:11px;color:#15803d;margin-bottom:3px">✅ <b>${c.name}</b>: ${c.cbh_abs} | ${c.budget_pct} budget</div>`
+    ).join('');
+  }
+  if (neg.length) {
+    html += neg.map(c =>
+      `<div style="font-size:11px;color:#b91c1c;margin-bottom:3px">⚠️ <b>${c.name}</b>: ${c.cbh_abs} | ${c.budget_pct} budget${c.note?' — '+c.note:''}</div>`
+    ).join('');
+  }
+  return html || '<span style="color:#cbd5e1">—</span>';
+}
+
+function parseInsight(raw) {
+  if (!raw) return null;
+  try {
+    const clean = raw.replace(/^"|"$/g,'').replace(/\\"/g,'"').replace(/\"/g,'"');
+    return JSON.parse(clean);
+  } catch(e) { return {observation: raw}; }
+}
+
+const CONF_DEF = {
+  high: '3+ ngày cùng trend + spend đủ lớn (>$500)',
+  medium: '2 ngày trend hoặc spend $100-500',
+  low: '1 ngày data, spend thấp, hoặc pattern biến động mạnh'
+};
+const CONF_COLOR = { high:'#22c55e', medium:'#f59e0b', low:'#ef4444' };
+
+function renderConfidence(conf) {
+  const color = CONF_COLOR[conf] || '#64748b';
+  const tip = CONF_DEF[conf] || conf;
+  return `<span class="conf conf-${conf}" title="${tip}" style="cursor:help">
+    <span class="conf-dot"></span>${conf}
+    <span style="font-size:10px;color:#94a3b8;margin-left:2px">ⓘ</span>
+  </span>`;
+}
+
+function renderInsight(raw) {
+  const parsed = parseInsight(raw);
+  if (!parsed) return '<span style="color:#cbd5e1">—</span>';
   const layers = [
     {key:'observation', label:'Observation', color:'#3b82f6'},
-    {key:'driver_analysis', label:'Driver', color:'#8b5cf6'},
+    {key:'performance_driver', label:'Performance Driver', color:'#8b5cf6'},
+    {key:'driver_analysis', label:'Performance Driver', color:'#8b5cf6'},
     {key:'root_cause', label:'Root Cause', color:'#f59e0b'},
-    {key:'insight', label:'Insight', color:'#10b981'},
-    {key:'recommendation', label:'Action', color:'#ef4444'},
+    {key:'insight', label:'Insight — So what?', color:'#10b981'},
   ];
-
   return layers.filter(l => parsed[l.key]).map(l =>
     `<div style="margin-bottom:6px">
       <span style="font-size:10px;font-weight:600;color:${l.color};text-transform:uppercase;letter-spacing:.4px">${l.label}</span>
       <div style="font-size:12px;color:#475569;line-height:1.5;margin-top:2px">${parsed[l.key]}</div>
     </div>`
   ).join('');
+}
+
+function renderRecommendation(raw) {
+  const parsed = parseInsight(raw);
+  if (!parsed || !parsed.recommendation) return '<span style="color:#cbd5e1">—</span>';
+  const rec = parsed.recommendation;
+
+  // Highlight expected impact lines
+  const lines = rec.split(/[.\n]/).filter(l => l.trim());
+  const html = lines.map(line => {
+    const l = line.trim();
+    if (!l) return '';
+    const isExpected = l.includes('dự kiến') || l.includes('Expected') || l.includes('+$') || l.includes('~');
+    if (isExpected) {
+      return `<div style="background:#d1fae5;border-left:3px solid #10b981;padding:4px 8px;border-radius:0 4px 4px 0;margin-top:4px;font-size:11px;color:#065f46;font-weight:500">${l}</div>`;
+    }
+    return `<div style="margin-bottom:3px;font-size:12px;color:#1e293b">${l}</div>`;
+  }).join('');
+
+  return `<div style="line-height:1.6;background:#fef3c7;border-left:3px solid #f59e0b;padding:8px 10px;border-radius:0 6px 6px 0">${html}</div>`;
 }
 
 async function loadProducts() {
@@ -286,18 +353,20 @@ function renderDailyTable(rows) {
       return `<div class="metric-row"><span class="metric-name">${m.n}</span><span class="${cls}">${pStr} ${a} ${cStr}</span></div>`;
     }).join('');
 
-    const cnote = r.creative_note;
-    const cnoteHtml = cnote ? `<div class="creative-note ${cnote.includes('⚠️')?'note-warn':'note-good'}">${cnote}</div>` : '<span style="color:#cbd5e1">—</span>';
+    const cnoteHtml = renderCreativeNote(r.creative_note);
 
     return `<tr>
       <td><div style="font-weight:500">${r.campaign}</div><div style="font-size:11px;color:#94a3b8">${r.product}</div></td>
       <td>${r.action?`<span class="badge badge-${r.action}">${actionLabel[r.action]||r.action}</span>`:'—'}</td>
       <td><div class="metric-block">${metricsHtml}</div></td>
-      <td style="max-width:260px">
+      <td style="max-width:240px">
         ${renderInsight(r.insight)}
       </td>
+      <td style="max-width:220px">
+        ${renderRecommendation(r.insight)}
+      </td>
       <td>${cnoteHtml}</td>
-      <td>${r.confidence?`<span class="conf conf-${r.confidence}"><span class="conf-dot"></span>${r.confidence}</span>`:'—'}</td>
+      <td>${r.confidence ? renderConfidence(r.confidence) : '—'}</td>
       <td><button class="btn-copy" onclick="copyDailyRow(${idx})">Copy</button></td>
     </tr>`;
   }).join('');
@@ -305,7 +374,7 @@ function renderDailyTable(rows) {
   document.getElementById('tableBody').innerHTML = `<table>
     <thead><tr>
       <th>Campaign</th><th>Action</th><th>Metrics (hôm qua→hôm nay)</th>
-      <th>Insight</th><th>Creative Set Note</th><th>Confidence</th><th></th>
+      <th>Analysis</th><th>Actionable Suggestion</th><th>Creative Contributors</th><th>Confidence</th><th></th>
     </tr></thead>
     <tbody>${rowsHtml}</tbody>
   </table>`;
@@ -316,6 +385,7 @@ function copyDailyRow(idx) {
   const f$ = v => '$'+Math.round(Number(v)||0).toLocaleString();
   const fP = v => Number(v||0).toFixed(2)+'%';
   const arr = (p,c) => c==null||p==null?'→':c>p?'↑':c<p?'↓':'→';
+  const parsed = parseInsight(r.insight);
   const lines = [
     'ME: '+(r.prev_spend!=null?f$(r.prev_spend):'?')+' '+arr(r.prev_spend,r.spend)+' '+f$(r.spend),
     '%CBH: '+(r.prev_cbh_pct!=null?fP(r.prev_cbh_pct):'?')+' '+arr(r.prev_cbh_pct,r.cbh_pct)+' '+fP(r.cbh_pct),
