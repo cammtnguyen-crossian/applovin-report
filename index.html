@@ -228,6 +228,40 @@ function renderConfidence(conf) {
   </span>`;
 }
 
+function formatLayerText(text) {
+  if (!text) return '';
+  // Split by | or numbered items like #1 #2 #3
+  let lines = text
+    .split(/\s*\|\s*|\n/)
+    .map(l => l.trim())
+    .filter(l => l);
+
+  if (lines.length <= 1) {
+    // Try split by #1 #2 etc
+    lines = text.split(/(#\d+\s)/).filter(l => l.trim());
+    // Rejoin pairs: "#1 " + content
+    const merged = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].match(/^#\d+\s*$/)) {
+        merged.push((lines[i] + (lines[i+1]||'')).trim());
+        i++;
+      } else if (lines[i].trim()) {
+        merged.push(lines[i].trim());
+      }
+    }
+    lines = merged.length > 1 ? merged : [text];
+  }
+
+  return lines.map(l => {
+    const clean = l.trim();
+    if (!clean) return '';
+    return `<div style="display:flex;gap:6px;margin-bottom:4px;line-height:1.45">
+      <span style="color:#94a3b8;flex-shrink:0">•</span>
+      <span>${clean}</span>
+    </div>`;
+  }).join('');
+}
+
 function renderInsight(raw) {
   const parsed = parseInsight(raw);
   if (!parsed) return '<span style="color:#cbd5e1">—</span>';
@@ -236,12 +270,12 @@ function renderInsight(raw) {
     {key:'performance_driver', label:'Performance Driver', color:'#8b5cf6'},
     {key:'driver_analysis', label:'Performance Driver', color:'#8b5cf6'},
     {key:'root_cause', label:'Root Cause', color:'#f59e0b'},
-    {key:'insight', label:'Insight — So what?', color:'#10b981'},
+    {key:'insight', label:'Insight', color:'#10b981'},
   ];
   return layers.filter(l => parsed[l.key]).map(l =>
-    `<div style="margin-bottom:6px">
-      <span style="font-size:10px;font-weight:600;color:${l.color};text-transform:uppercase;letter-spacing:.4px">${l.label}</span>
-      <div style="font-size:12px;color:#475569;line-height:1.5;margin-top:2px">${parsed[l.key]}</div>
+    `<div style="margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:${l.color};text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${l.label}</div>
+      <div style="font-size:12px;color:#475569">${formatLayerText(parsed[l.key])}</div>
     </div>`
   ).join('');
 }
