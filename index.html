@@ -219,6 +219,84 @@ const CONF_DEF = {
 };
 const CONF_COLOR = { high:'#22c55e', medium:'#f59e0b', low:'#ef4444' };
 
+function renderWeeklyInsight(raw) {
+  if (!raw) return '<span style="color:#cbd5e1">—</span>';
+  let parsed;
+  try {
+    const clean = raw.replace(/^"|"$/g,'').replace(/\\"/g,'"').replace(/\"/g,'"');
+    parsed = JSON.parse(clean);
+  } catch(e) {
+    return `<div style="font-size:12px;color:#475569;line-height:1.5">${raw}</div>`;
+  }
+
+  const layers = [
+    {key:'action_review', label:'Action Review', color:'#6366f1'},
+    {key:'observation', label:'Observation', color:'#3b82f6'},
+    {key:'performance_driver', label:'Performance Driver', color:'#8b5cf6'},
+    {key:'root_cause', label:'Root Cause', color:'#f59e0b'},
+    {key:'insight', label:'Insight', color:'#10b981'},
+  ];
+
+  return layers.filter(l => parsed[l.key]).map(l =>
+    `<div style="margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:${l.color};text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${l.label}</div>
+      <div style="font-size:12px;color:#475569">${formatLayerText(parsed[l.key])}</div>
+    </div>`
+  ).join('');
+}
+
+function renderWeeklyRecommendation(raw) {
+  if (!raw) return '<span style="color:#cbd5e1">—</span>';
+  let parsed;
+  try {
+    const clean = raw.replace(/^"|"$/g,'').replace(/\\"/g,'"').replace(/\"/g,'"');
+    parsed = JSON.parse(clean);
+  } catch(e) {
+    return `<div style="font-size:12px;color:#1e293b;line-height:1.6;background:#fef3c7;border-left:3px solid #f59e0b;padding:8px 10px;border-radius:0 6px 6px 0">${raw}</div>`;
+  }
+
+  if (!parsed.recommendation) return '<span style="color:#cbd5e1">—</span>';
+  const rec = parsed.recommendation;
+  const lines = rec.split(/\n/).filter(l => l.trim());
+
+  const html = lines.map(line => {
+    const l = line.trim().replace(/^[-•*]\s*/, '');
+    if (!l) return '';
+    const isExpected = l.toLowerCase().includes('dự kiến') ||
+                       l.toLowerCase().includes('hypothesis') ||
+                       l.includes('+$') || l.includes('≈') ||
+                       (l.includes('→') && (l.includes('%') || l.includes('$')));
+    if (isExpected) {
+      return `<div style="background:#d1fae5;border-left:3px solid #10b981;padding:5px 10px;border-radius:0 4px 4px 0;margin-top:6px;font-size:12px;color:#065f46;font-weight:500;line-height:1.4">${l}</div>`;
+    }
+    return `<div style="margin-bottom:4px;font-size:12px;color:#1e293b;line-height:1.4">${l}</div>`;
+  }).join('');
+
+  return `<div style="line-height:1.6;background:#fef3c7;border-left:3px solid #f59e0b;padding:10px 12px;border-radius:0 6px 6px 0">${html}</div>`;
+}
+
+function renderWeeklyPortfolio(raw) {
+  if (!raw) return '<span style="color:#cbd5e1">—</span>';
+  let parsed;
+  try {
+    const clean = raw.replace(/^"|"$/g,'').replace(/\\"/g,'"').replace(/\"/g,'"');
+    parsed = JSON.parse(clean);
+  } catch(e) {
+    return `<div style="font-size:12px;color:#475569">${raw}</div>`;
+  }
+  const sections = [
+    {key:'next_week_focus', label:'Next Week Focus', color:'#6366f1'},
+    {key:'account_pattern', label:'Account Pattern', color:'#0ea5e9'},
+    {key:'creative_portfolio', label:'Creative Portfolio', color:'#8b5cf6'},
+  ];
+  return sections.filter(s => parsed[s.key]).map(s =>
+    `<div style="margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:${s.color};text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${s.label}</div>
+      <div style="font-size:12px;color:#475569">${formatLayerText(parsed[s.key])}</div>
+    </div>`
+  ).join('');
+}
+
 function renderConfidence(conf) {
   const color = CONF_COLOR[conf] || '#64748b';
   const tip = CONF_DEF[conf] || conf;
@@ -543,10 +621,10 @@ function renderWeeklyTable(rows, byCamp) {
         <div>CR: ${fmtWP(w3?.cr)} → ${fmtWP(w2?.cr)} → ${fmtWP(w1?.cr)}</div>
         <div>PO: ${w3?.purchases||'?'} → ${w2?.purchases||'?'} → ${w1?.purchases||'?'}</div>
       </td>
-      <td style="font-size:12px;color:#475569;max-width:200px">
-        ${r.insight?r.insight.split('\n').map(l=>l.trim()?`<div style="margin-bottom:3px">${l}</div>`:'').join(''):'<span style="color:#cbd5e1">—</span>'}
+      <td style="max-width:260px">
+        ${renderWeeklyInsight(r.insight)}
       </td>
-      <td style="font-size:12px;color:#475569;max-width:180px">${r.plan||'<span style="color:#cbd5e1">—</span>'}</td>
+      <td style="max-width:220px">${renderWeeklyRecommendation(r.insight)}</td>
       <td style="white-space:nowrap;vertical-align:middle">
         <button class="btn-copy" onclick="copyWeeklyRow(${idx})" style="margin-bottom:4px">Copy</button><br>
         <button onclick="toggleCS('${r.campaign_id}',this)" style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;color:#7c3aed;white-space:nowrap">Creative Sets</button>
@@ -562,7 +640,7 @@ function renderWeeklyTable(rows, byCamp) {
   document.getElementById('weekly-table-body').innerHTML = `<table>
     <thead><tr>
       <th>Campaign</th><th>Action</th><th>Metrics (W3→W2→W1)</th>
-      <th>Insight</th><th>Plan</th><th></th>
+      <th>Analysis</th><th>Recommendation</th><th></th>
     </tr></thead>
     <tbody>${rowsHtml}</tbody>
   </table>`;
