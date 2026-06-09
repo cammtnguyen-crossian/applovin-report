@@ -86,6 +86,7 @@
 <div class="tabs">
   <button class="tab-btn active" id="tab-daily" onclick="switchTab('daily')">Daily Report</button>
   <button class="tab-btn" id="tab-weekly" onclick="switchTab('weekly')">Weekly Report</button>
+  <button class="tab-btn" id="tab-actions" onclick="switchTab('actions')">Action Impact</button>
 </div>
 
 <!-- DAILY FILTERS -->
@@ -103,6 +104,34 @@
     <option value="cut_heavy">Cut heavy</option>
     <option value="suggest_pause">Suggest pause</option>
   </select>
+</div>
+
+<!-- ACTION IMPACT FILTERS -->
+<div class="filters" id="actions-filters" style="display:none">
+  <span class="filter-label">Campaign</span>
+  <select id="actionCampFilter" onchange="loadActions()" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px">
+    <option value="">All campaigns</option>
+  </select>
+  <span class="filter-label" style="margin-left:8px">Action Type</span>
+  <select id="actionTypeFilter" onchange="loadActions()" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px">
+    <option value="">All actions</option>
+    <option value="pause_creative">Pause Creative</option>
+    <option value="resume_creative">Resume Creative</option>
+    <option value="cut_budget">Cut Budget</option>
+    <option value="scale_budget">Scale Budget</option>
+  </select>
+</div>
+
+<!-- ACTION IMPACT CONTENT -->
+<div class="content" id="actions-content" style="display:none">
+  <div class="cards" id="action-summary-cards"></div>
+  <div class="table-wrap">
+    <div class="table-header">
+      <span class="table-title">Action Impact Tracker</span>
+      <span id="action-row-count" style="font-size:12px;color:#94a3b8"></span>
+    </div>
+    <div id="action-table-body"><div class="loading">Loading...</div></div>
+  </div>
 </div>
 
 <!-- WEEKLY FILTERS -->
@@ -158,14 +187,15 @@ async function api(path) {
 
 // ── Tab switch ──
 function switchTab(tab) {
-  const isDaily = tab === 'daily';
-  document.getElementById('tab-daily').className = 'tab-btn' + (isDaily ? ' active' : '');
-  document.getElementById('tab-weekly').className = 'tab-btn' + (!isDaily ? ' active' : '');
-  document.getElementById('daily-filters').style.display = isDaily ? 'flex' : 'none';
-  document.getElementById('daily-content').style.display = isDaily ? 'block' : 'none';
-  document.getElementById('weekly-filters').style.display = !isDaily ? 'flex' : 'none';
-  document.getElementById('weekly-content').style.display = !isDaily ? 'block' : 'none';
-  if (!isDaily && !window._weeklyInited) { initWeekly(); window._weeklyInited = true; }
+  ['daily','weekly','actions'].forEach(t => {
+    document.getElementById('tab-'+t).className = 'tab-btn' + (tab===t?' active':'');
+    const f = document.getElementById(t+'-filters');
+    const c = document.getElementById(t+'-content');
+    if(f) f.style.display = tab===t ? 'flex' : 'none';
+    if(c) c.style.display = tab===t ? 'block' : 'none';
+  });
+  if (tab==='weekly' && !window._weeklyInited) { initWeekly(); window._weeklyInited = true; }
+  if (tab==='actions' && !window._actionsInited) { initActions(); window._actionsInited = true; }
 }
 
 // ════════════════════════════════
@@ -705,10 +735,18 @@ async function toggleCS(campId, btn) {
       const sugg=w1?.suggestion||'';
       const suggColor=sugg.includes('Tách')?'#7c3aed':sugg.includes('OFF')?'#dc2626':sugg.includes('WARNING')?'#d97706':sugg.includes('ON')?'#16a34a':'#64748b';
 
-      return `<tr style="${isOffed?'opacity:0.6':''}">
+      // Determine status
+      const w1spend = Number(w1?.spend||0);
+      const w2spend = Number(w2?.spend||0);
+      const isActive = w1spend > 0;
+      const statusBadge = isActive
+        ? '<span style="background:#dcfce7;color:#15803d;font-size:10px;padding:1px 7px;border-radius:10px;margin-right:4px;font-weight:600">ACTIVE</span>'
+        : (w2spend > 0 ? '<span style="background:#fee2e2;color:#b91c1c;font-size:10px;padding:1px 7px;border-radius:10px;margin-right:4px;font-weight:600">OFF</span>' : '');
+
+      return `<tr style="${isOffed?'opacity:0.5':''}">
         <td style="min-width:220px">
           ${isNew?'<span class="tag-new">NEW</span>':''}
-          ${isOffed?'<span class="tag-off">OFF</span>':''}
+          ${statusBadge}
           ${name}
         </td>
         <td style="color:#94a3b8;white-space:nowrap;font-size:11px">${w1?.created_on||'—'}</td>
@@ -751,6 +789,115 @@ function showToast() {
   const t=document.getElementById('toast');
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ════════════════════════════════
+// ACTION IMPACT TRACKER
+// ════════════════════════════════
+
+async function initActions() {
+  // Populate campaign filter
+  const camps = await api('campaigns?select=id,name&status=eq.active&order=name.asc');
+  const sel = document.getElementById('actionCampFilter');
+  camps.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.id; o.textContent = c.name;
+    sel.appendChild(o);
+  });
+  loadActions();
+}
+
+async function loadActions() {
+  const campId = document.getElementById('actionCampFilter').value;
+  const actionType = document.getElementById('actionTypeFilter').value;
+  document.getElementById('action-table-body').innerHTML = '<div class="loading">Loading...</div>';
+
+  try {
+    let url = 'action_log?order=action_date.desc&limit=50';
+    if (campId) url += '&campaign_id=eq.' + campId;
+    if (actionType) url += '&action_type=eq.' + actionType;
+
+    const rows = await api(url);
+
+    // Fetch campaign names
+    const camps = await api('campaigns?select=id,name&status=eq.active');
+    const campMap = {};
+    camps.forEach(c => campMap[c.id] = c.name);
+
+    rows.forEach(r => r.campaign = campMap[r.campaign_id] || r.campaign_id);
+    window._actionRows = rows;
+
+    renderActionSummary(rows);
+    renderActionTable(rows);
+    document.getElementById('action-row-count').textContent = rows.length + ' actions';
+  } catch(e) {
+    document.getElementById('action-table-body').innerHTML = '<div class="empty">❌ ' + e.message + '</div>';
+  }
+}
+
+function renderActionSummary(rows) {
+  const withD1 = rows.filter(r => r.d1_cbh_pct != null);
+  const withD3 = rows.filter(r => r.d3_cbh_pct != null);
+  const withD7 = rows.filter(r => r.d7_cbh_pct != null);
+  const avgD1 = withD1.length ? (withD1.reduce((s,r) => s+(r.d1_cbh_pct - r.baseline_cbh_pct),0)/withD1.length).toFixed(1) : null;
+  const avgD3 = withD3.length ? (withD3.reduce((s,r) => s+(r.d3_cbh_pct - r.baseline_cbh_pct),0)/withD3.length).toFixed(1) : null;
+
+  document.getElementById('action-summary-cards').innerHTML = `
+    <div class="card"><div class="card-label">Total Actions</div><div class="card-val">${rows.length}</div><div class="card-sub">Auto-detected</div></div>
+    <div class="card"><div class="card-label">Avg D+1 Impact</div><div class="card-val" style="color:${avgD1>0?'#16a34a':avgD1<0?'#dc2626':'#64748b'}">${avgD1!=null?(avgD1>0?'+':'')+avgD1+'%':'—'}</div><div class="card-sub">${withD1.length} actions tracked</div></div>
+    <div class="card"><div class="card-label">Avg D+3 Impact</div><div class="card-val" style="color:${avgD3>0?'#16a34a':avgD3<0?'#dc2626':'#64748b'}">${avgD3!=null?(avgD3>0?'+':'')+avgD3+'%':'—'}</div><div class="card-sub">${withD3.length} actions tracked</div></div>
+    <div class="card"><div class="card-label">Pause Actions</div><div class="card-val">${rows.filter(r=>r.action_type==='pause_creative').length}</div></div>
+    <div class="card"><div class="card-label">Budget Actions</div><div class="card-val">${rows.filter(r=>r.action_type?.includes('budget')).length}</div></div>`;
+}
+
+function impactCell(baseline, actual) {
+  if (actual == null) return '<span style="color:#cbd5e1">—</span>';
+  const delta = Number(actual) - Number(baseline);
+  const color = delta > 0 ? '#16a34a' : delta < 0 ? '#dc2626' : '#64748b';
+  const sign = delta > 0 ? '+' : '';
+  return `<span style="color:${color};font-weight:500">${Number(actual).toFixed(1)}%</span> <span style="font-size:11px;color:${color}">(${sign}${delta.toFixed(1)}%)</span>`;
+}
+
+function renderActionTable(rows) {
+  if (!rows.length) { document.getElementById('action-table-body').innerHTML = '<div class="empty">Chưa có action nào được detect</div>'; return; }
+
+  const typeLabel = {
+    pause_creative: '⏸ Pause Creative',
+    resume_creative: '▶ Resume Creative',
+    cut_budget: '⬇ Cut Budget',
+    scale_budget: '🚀 Scale Budget',
+  };
+  const typeColor = {
+    pause_creative: '#fee2e2', resume_creative: '#dcfce7',
+    cut_budget: '#ffedd5', scale_budget: '#dbeafe',
+  };
+  const typeText = {
+    pause_creative: '#b91c1c', resume_creative: '#15803d',
+    cut_budget: '#c2410c', scale_budget: '#1d4ed8',
+  };
+
+  const rowsHtml = rows.map(r => `
+    <tr style="border-bottom:1px solid #f1f5f9">
+      <td style="font-size:12px;white-space:nowrap;color:#94a3b8">${r.action_date}</td>
+      <td><div style="font-weight:500;font-size:12px">${r.campaign}</div></td>
+      <td><span class="badge" style="background:${typeColor[r.action_type]||'#f1f5f9'};color:${typeText[r.action_type]||'#64748b'}">${typeLabel[r.action_type]||r.action_type}</span></td>
+      <td style="font-size:12px;color:#475569;max-width:200px">${r.action_target||'—'}</td>
+      <td style="font-size:12px;color:#64748b">${r.action_value||'—'}</td>
+      <td style="font-size:12px"><span style="color:${Number(r.baseline_cbh_pct||0)>=8?'#16a34a':Number(r.baseline_cbh_pct||0)<0?'#dc2626':'#f59e0b'};font-weight:500">${Number(r.baseline_cbh_pct||0).toFixed(1)}%</span></td>
+      <td style="font-size:12px">${impactCell(r.baseline_cbh_pct, r.d1_cbh_pct)}</td>
+      <td style="font-size:12px">${impactCell(r.baseline_cbh_pct, r.d3_cbh_pct)}</td>
+      <td style="font-size:12px">${impactCell(r.baseline_cbh_pct, r.d7_cbh_pct)}</td>
+      <td style="font-size:12px;color:#94a3b8;font-style:italic">${r.note||'—'}</td>
+    </tr>`).join('');
+
+  document.getElementById('action-table-body').innerHTML = `<table>
+    <thead><tr>
+      <th>Date</th><th>Campaign</th><th>Action</th><th>Target</th>
+      <th>Value</th><th>Baseline %CBH</th>
+      <th>D+1 %CBH</th><th>D+3 %CBH</th><th>D+7 %CBH</th><th>Note</th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>`;
 }
 
 // ── Start ──
