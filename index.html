@@ -651,17 +651,14 @@ function copyWeeklyRow(idx) {
   const h = window._byCamp[r.campaign_id]||[];
   const w1=h[0],w2=h[1],w3=h[2];
   const lines = [
-    'Weekly — '+r.campaign,'',
-    '- ME: '+fmtW$(w3?.spend)+' → '+fmtW$(w2?.spend)+' → '+fmtW$(w1?.spend),
-    '- %CBH: '+fmtWP(w3?.cbh_pct)+' → '+fmtWP(w2?.cbh_pct)+' → '+fmtWP(w1?.cbh_pct),
-    '- CBH: '+fmtW$(w3?.cbh)+' → '+fmtW$(w2?.cbh)+' → '+fmtW$(w1?.cbh),
-    '- CTR: '+fmtWP(w3?.ctr)+' → '+fmtWP(w2?.ctr)+' → '+fmtWP(w1?.ctr),
-    '- eCPM: '+fmtW$(w3?.ecpm)+' → '+fmtW$(w2?.ecpm)+' → '+fmtW$(w1?.ecpm),
-    '- CR: '+fmtWP(w3?.cr)+' → '+fmtWP(w2?.cr)+' → '+fmtWP(w1?.cr),
-    '- PO: '+(w3?.purchases||'?')+' → '+(w2?.purchases||'?')+' → '+(w1?.purchases||'?'),
+    'ME: '+fmtW$(w3?.spend)+' → '+fmtW$(w2?.spend)+' → '+fmtW$(w1?.spend),
+    '%CBH: '+fmtWP(w3?.cbh_pct)+' → '+fmtWP(w2?.cbh_pct)+' → '+fmtWP(w1?.cbh_pct),
+    'CBH: '+fmtW$(w3?.cbh)+' → '+fmtW$(w2?.cbh)+' → '+fmtW$(w1?.cbh),
+    'CTR: '+fmtWP(w3?.ctr)+' → '+fmtWP(w2?.ctr)+' → '+fmtWP(w1?.ctr),
+    'eCPM: '+fmtW$(w3?.ecpm)+' → '+fmtW$(w2?.ecpm)+' → '+fmtW$(w1?.ecpm),
+    'CR: '+fmtWP(w3?.cr)+' → '+fmtWP(w2?.cr)+' → '+fmtWP(w1?.cr),
+    'PO: '+(w3?.purchases||'?')+' → '+(w2?.purchases||'?')+' → '+(w1?.purchases||'?'),
   ];
-  if (r.insight) { lines.push(''); lines.push('Insight:'); r.insight.split('\n').forEach(l=>{if(l.trim())lines.push(l.trim());}); }
-  if (r.plan) { lines.push(''); lines.push('Plan:'); lines.push(r.plan); }
   navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast());
 }
 
@@ -747,12 +744,11 @@ async function toggleCS(campId, btn) {
 function copyCS(name,created,me2,me1,cbhp2,cbhp1,cbh2,cbh1,sugg) {
   const f$=v=>'$'+Math.round(Number(v)||0).toLocaleString();
   const fP=v=>Number(v||0).toFixed(2)+'%';
-  const lines=[name,'Created: '+(created||'—'),'',
-    '- ME: '+f$(me2)+' → '+f$(me1),
-    '- %CBH: '+fP(cbhp2)+' → '+fP(cbhp1),
-    '- CBH: '+f$(cbh2)+' → '+f$(cbh1),
+  const lines=[
+    'ME: '+f$(me2)+' → '+f$(me1),
+    '%CBH: '+fP(cbhp2)+' → '+fP(cbhp1),
+    'CBH: '+f$(cbh2)+' → '+f$(cbh1),
   ];
-  if(sugg){lines.push('');lines.push('Suggestion: '+sugg);}
   navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast());
 }
 
