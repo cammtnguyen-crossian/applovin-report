@@ -499,22 +499,17 @@ function renderDailyTable(rows) {
 
 function copyDailyRow(idx) {
   const r = window._dailyRows[idx];
-  const f$ = v => '$'+Math.round(Number(v)||0).toLocaleString();
-  const fP = v => Number(v||0).toFixed(2)+'%';
+  const f$ = v => v!=null?'$'+Math.round(Number(v)).toLocaleString():'?';
+  const fP = v => v!=null?Number(v).toFixed(2)+'%':'?';
   const arr = (p,c) => c==null||p==null?'→':c>p?'↑':c<p?'↓':'→';
-  const parsed = parseInsight(r.insight);
   const lines = [
     'ME: '+(r.prev_spend!=null?f$(r.prev_spend):'?')+' '+arr(r.prev_spend,r.spend)+' '+f$(r.spend),
     '%CBH: '+(r.prev_cbh_pct!=null?fP(r.prev_cbh_pct):'?')+' '+arr(r.prev_cbh_pct,r.cbh_pct)+' '+fP(r.cbh_pct),
     'CBH: '+(r.prev_cbh!=null?f$(r.prev_cbh):'?')+' '+arr(r.prev_cbh,r.cbh)+' '+f$(r.cbh),
-    'CR'+(r.prev_cr&&r.cr>r.prev_cr?' tăng':r.prev_cr&&r.cr<r.prev_cr?' giảm':'')+': '+(r.prev_cr!=null?fP(r.prev_cr):'?')+' → '+fP(r.cr),
-    'eCPM'+(r.prev_ecpm&&r.ecpm>r.prev_ecpm?' tăng':r.prev_ecpm&&r.ecpm<r.prev_ecpm?' giảm':'')+': '+(r.prev_ecpm!=null?'$'+r.prev_ecpm:'?')+' → $'+r.ecpm,
-    'CTR'+(r.prev_ctr&&r.ctr>r.prev_ctr?' tăng':r.prev_ctr&&r.ctr<r.prev_ctr?' giảm':'')+': '+(r.prev_ctr!=null?fP(r.prev_ctr):'?')+' → '+fP(r.ctr),
-    '',
-    r.insight?'Insight: '+r.insight:'',
-    '',
-    r.action?'Plan: '+r.action.toUpperCase():'',
-  ].filter((l,i,a) => !(l===''&&a[i-1]===''));
+    'CR: '+(r.prev_cr!=null?fP(r.prev_cr):'?')+' '+arr(r.prev_cr,r.cr)+' '+fP(r.cr),
+    'eCPM: '+(r.prev_ecpm!=null?'$'+Number(r.prev_ecpm).toFixed(2):'?')+' '+arr(r.prev_ecpm,r.ecpm)+' $'+Number(r.ecpm||0).toFixed(2),
+    'CTR: '+(r.prev_ctr!=null?fP(r.prev_ctr):'?')+' '+arr(r.prev_ctr,r.ctr)+' '+fP(r.ctr),
+  ];
   navigator.clipboard.writeText(lines.join('\n')).then(() => showToast());
 }
 
