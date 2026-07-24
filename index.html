@@ -1,3 +1,13 @@
+<!--
+  AppLovin Performance Agent Dashboard
+  =====================================
+  Trước khi deploy: tìm và thay 2 dòng sau:
+  1. YOUR_SUPABASE_URL  → URL từ Supabase Settings > API
+  2. YOUR_SUPABASE_KEY  → Publishable key từ Supabase Settings > API Keys
+
+  Sau đó upload file này lên GitHub repo (đổi tên thành index.html)
+  và enable GitHub Pages trong Settings > Pages
+-->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -43,6 +53,7 @@
   .conf-high .conf-dot { background: #22c55e; }
   .conf-medium .conf-dot { background: #f59e0b; }
   .conf-low .conf-dot { background: #ef4444; }
+  .applied-action { font-size: 11px; font-weight: 600; color: #475569; background: #f1f5f9; border-radius: 6px; padding: 3px 8px; display: inline-block; margin-bottom: 6px; }
   .metric-block { font-size: 12px; line-height: 1.9; color: #475569; }
   .metric-row { display: flex; gap: 6px; align-items: baseline; }
   .metric-name { color: #94a3b8; font-size: 11px; width: 42px; flex-shrink: 0; }
@@ -169,8 +180,8 @@
 <div class="toast" id="toast">Đã copy!</div>
 
 <script>
-const SUPABASE_URL = "https://zcdbdrtttlrwhwofgbgz.supabase.co";
-const SUPABASE_KEY = "sb_publishable_X6gaCcP_dGkDdzzpHOP5mg_7-X9ihAW";
+const SUPABASE_URL = "YOUR_SUPABASE_URL";
+const SUPABASE_KEY = "YOUR_SUPABASE_KEY";
 
 // ── Init ──
 const yesterday = new Date();
@@ -206,7 +217,7 @@ function renderCreativeNote(raw) {
   if (!raw) return '<span style="color:#cbd5e1">—</span>';
   let contributors;
   try {
-    const clean = raw.replace(/^"|"$/g,'').replace(/\\"/g,'"').replace(/\"/g,'"');
+    const clean = cleanJson(raw);
     contributors = JSON.parse(clean);
     if (!Array.isArray(contributors)) throw new Error();
   } catch(e) {
@@ -234,12 +245,26 @@ function renderCreativeNote(raw) {
   return html || '<span style="color:#cbd5e1">—</span>';
 }
 
+// Supabase/PostgREST sometimes returns a TEXT column value double-encoded (a JSON string
+// literal wrapping the real JSON object, e.g. "{\"a\":1}" instead of {"a":1}). If so, the
+// outer layer needs one real JSON.parse pass to correctly un-escape it — a naive regex
+// replace of \" -> " corrupts any nested quotes inside the text (e.g. a creative set name
+// wrapped in quotes) and breaks parsing entirely. Only unwrap when it's actually
+// double-encoded; otherwise leave the string untouched for the real parse below.
+function cleanJson(raw) {
+  if (typeof raw !== 'string') return raw;
+  if (raw.length > 1 && raw[0] === '"' && raw[raw.length - 1] === '"') {
+    try { return JSON.parse(raw); } catch (e) { /* not actually double-encoded */ }
+  }
+  return raw;
+}
+
 function parseInsight(raw) {
   if (!raw) return null;
   try {
-    const clean = raw.replace(/^"|"$/g,'').replace(/\\"/g,'"').replace(/\"/g,'"');
+    const clean = cleanJson(raw);
     return JSON.parse(clean);
-  } catch(e) { return {observation: raw}; }
+  } catch(e) { return {result_metrics: raw}; }
 }
 
 const CONF_DEF = {
@@ -253,7 +278,7 @@ function renderWeeklyInsight(raw) {
   if (!raw) return '<span style="color:#cbd5e1">—</span>';
   let parsed;
   try {
-    const clean = raw.replace(/^"|"$/g,'').replace(/\\"/g,'"').replace(/\"/g,'"');
+    const clean = cleanJson(raw);
     parsed = JSON.parse(clean);
   } catch(e) {
     return `<div style="font-size:12px;color:#475569;line-height:1.5">${raw}</div>`;
@@ -279,7 +304,7 @@ function renderWeeklyRecommendation(raw) {
   if (!raw) return '<span style="color:#cbd5e1">—</span>';
   let parsed;
   try {
-    const clean = raw.replace(/^"|"$/g,'').replace(/\\"/g,'"').replace(/\"/g,'"');
+    const clean = cleanJson(raw);
     parsed = JSON.parse(clean);
   } catch(e) {
     return `<div style="font-size:12px;color:#1e293b;line-height:1.6;background:#fef3c7;border-left:3px solid #f59e0b;padding:8px 10px;border-radius:0 6px 6px 0">${raw}</div>`;
@@ -309,7 +334,7 @@ function renderWeeklyPortfolio(raw) {
   if (!raw) return '<span style="color:#cbd5e1">—</span>';
   let parsed;
   try {
-    const clean = raw.replace(/^"|"$/g,'').replace(/\\"/g,'"').replace(/\"/g,'"');
+    const clean = cleanJson(raw);
     parsed = JSON.parse(clean);
   } catch(e) {
     return `<div style="font-size:12px;color:#475569">${raw}</div>`;
@@ -370,14 +395,13 @@ function formatLayerText(text) {
   }).join('');
 }
 
+// Daily "Analysis" column — Performance Driver + Insight (Applied Action & Result Metrics
+// have their own dedicated column, see renderDailyTable)
 function renderInsight(raw) {
   const parsed = parseInsight(raw);
   if (!parsed) return '<span style="color:#cbd5e1">—</span>';
   const layers = [
-    {key:'observation', label:'Observation', color:'#3b82f6'},
     {key:'performance_driver', label:'Performance Driver', color:'#8b5cf6'},
-    {key:'driver_analysis', label:'Performance Driver', color:'#8b5cf6'},
-    {key:'root_cause', label:'Root Cause', color:'#f59e0b'},
     {key:'insight', label:'Insight', color:'#10b981'},
   ];
   return layers.filter(l => parsed[l.key]).map(l =>
@@ -388,10 +412,11 @@ function renderInsight(raw) {
   ).join('');
 }
 
+// Daily "Actionable Suggestion" column — Plan (renamed from "recommendation")
 function renderRecommendation(raw) {
   const parsed = parseInsight(raw);
-  if (!parsed || !parsed.recommendation) return '<span style="color:#cbd5e1">—</span>';
-  const rec = parsed.recommendation;
+  const rec = parsed && (parsed.plan || parsed.recommendation);
+  if (!rec) return '<span style="color:#cbd5e1">—</span>';
 
   // Split by newline or bullet points only — not by period
   const lines = rec.split(/\n|(?=\*\s)|(?=•\s)|(?=- )/).filter(l => l.trim());
@@ -400,8 +425,8 @@ function renderRecommendation(raw) {
     const l = line.trim().replace(/^[-•*]\s*/, '');
     if (!l) return '';
     // Highlight expected impact lines
-    const isExpected = l.toLowerCase().includes('dự kiến') || 
-                       l.toLowerCase().includes('expected') || 
+    const isExpected = l.toLowerCase().includes('dự kiến') ||
+                       l.toLowerCase().includes('expected') ||
                        l.includes('+$') || l.includes('≈') ||
                        (l.includes('→') && (l.includes('%') || l.includes('$')));
     if (isExpected) {
@@ -471,6 +496,10 @@ function cbhSpan(v) {
   return `<span style="color:${c}">${n.toFixed(2)}%</span>`;
 }
 
+// Result Metrics column: %CBH + CBH ALWAYS shown; ME (spend) only shown when the
+// applied action (yesterday) was not "keep" — matches the new daily report format
+// where a Keep day stays terse (just the result metric), while a Scale/Cut day also
+// surfaces the spend change that produced it.
 function renderDailyTable(rows) {
   if (!rows.length) { document.getElementById('tableBody').innerHTML = '<div class="empty">📭 Không có data</div>'; return; }
 
@@ -481,14 +510,12 @@ function renderDailyTable(rows) {
   const arr = (p,c) => c==null||p==null?'→':c>p?'↑':c<p?'↓':'→';
 
   const rowsHtml = rows.map((r,idx) => {
-    const metrics = [
-      {n:'ME',p:r.prev_spend,c:r.spend,fmt:f$,hib:false},
-      {n:'%CBH',p:r.prev_cbh_pct,c:r.cbh_pct,fmt:fP,hib:true},
-      {n:'CBH',p:r.prev_cbh,c:r.cbh,fmt:f$,hib:true},
-      {n:'CR',p:r.prev_cr,c:r.cr,fmt:fP,hib:true},
-      {n:'eCPM',p:r.prev_ecpm,c:r.ecpm,fmt:f$,hib:false},
-      {n:'CTR',p:r.prev_ctr,c:r.ctr,fmt:fP,hib:true},
-    ];
+    const isKeep = r.action === 'keep';
+    const metrics = [];
+    if (!isKeep) metrics.push({n:'ME',p:r.prev_spend,c:r.spend,fmt:f$,hib:false});
+    metrics.push({n:'%CBH',p:r.prev_cbh_pct,c:r.cbh_pct,fmt:fP,hib:true});
+    metrics.push({n:'CBH',p:r.prev_cbh,c:r.cbh,fmt:f$,hib:true});
+
     const metricsHtml = metrics.map(m => {
       const cls = m.n==='%CBH'?'':dir(m.p,m.c,m.hib);
       const pStr = m.p!=null?m.fmt(m.p):'?';
@@ -500,12 +527,17 @@ function renderDailyTable(rows) {
       return `<div class="metric-row"><span class="metric-name">${m.n}</span><span class="${cls}">${pStr} ${a} ${cStr}</span></div>`;
     }).join('');
 
+    const parsedForAction = parseInsight(r.insight);
+    const appliedActionHtml = parsedForAction && parsedForAction.applied_action
+      ? `<div class="applied-action">${parsedForAction.applied_action}</div>`
+      : '';
+
     const cnoteHtml = renderCreativeNote(r.creative_note);
 
     return `<tr>
       <td><div style="font-weight:500">${r.campaign}</div><div style="font-size:11px;color:#94a3b8">${r.product}</div></td>
       <td>${r.action?`<span class="badge badge-${r.action}">${actionLabel[r.action]||r.action}</span>`:'—'}</td>
-      <td><div class="metric-block">${metricsHtml}</div></td>
+      <td>${appliedActionHtml}<div class="metric-block">${metricsHtml}</div></td>
       <td style="max-width:240px">
         ${renderInsight(r.insight)}
       </td>
@@ -520,8 +552,8 @@ function renderDailyTable(rows) {
 
   document.getElementById('tableBody').innerHTML = `<table>
     <thead><tr>
-      <th>Campaign</th><th>Action</th><th>Metrics (hôm qua→hôm nay)</th>
-      <th>Analysis</th><th>Actionable Suggestion</th><th>Creative Contributors</th><th>Confidence</th><th></th>
+      <th>Campaign</th><th>Plan (today)</th><th>Applied Action & Result Metrics</th>
+      <th>Analysis</th><th>Plan Detail</th><th>Creative Contributors</th><th>Confidence</th><th></th>
     </tr></thead>
     <tbody>${rowsHtml}</tbody>
   </table>`;
@@ -532,14 +564,14 @@ function copyDailyRow(idx) {
   const f$ = v => v!=null?'$'+Math.round(Number(v)).toLocaleString():'?';
   const fP = v => v!=null?Number(v).toFixed(2)+'%':'?';
   const arr = (p,c) => c==null||p==null?'→':c>p?'↑':c<p?'↓':'→';
-  const lines = [
-    'ME: '+(r.prev_spend!=null?f$(r.prev_spend):'?')+' '+arr(r.prev_spend,r.spend)+' '+f$(r.spend),
-    '%CBH: '+(r.prev_cbh_pct!=null?fP(r.prev_cbh_pct):'?')+' '+arr(r.prev_cbh_pct,r.cbh_pct)+' '+fP(r.cbh_pct),
-    'CBH: '+(r.prev_cbh!=null?f$(r.prev_cbh):'?')+' '+arr(r.prev_cbh,r.cbh)+' '+f$(r.cbh),
-    'CR: '+(r.prev_cr!=null?fP(r.prev_cr):'?')+' '+arr(r.prev_cr,r.cr)+' '+fP(r.cr),
-    'eCPM: '+(r.prev_ecpm!=null?'$'+Number(r.prev_ecpm).toFixed(2):'?')+' '+arr(r.prev_ecpm,r.ecpm)+' $'+Number(r.ecpm||0).toFixed(2),
-    'CTR: '+(r.prev_ctr!=null?fP(r.prev_ctr):'?')+' '+arr(r.prev_ctr,r.ctr)+' '+fP(r.ctr),
-  ];
+  const parsed = parseInsight(r.insight) || {};
+  const lines = [];
+  if (parsed.applied_action) lines.push(parsed.applied_action);
+  if (r.action !== 'keep') {
+    lines.push('ME: '+(r.prev_spend!=null?f$(r.prev_spend):'?')+' '+arr(r.prev_spend,r.spend)+' '+f$(r.spend));
+  }
+  lines.push('%CBH: '+(r.prev_cbh_pct!=null?fP(r.prev_cbh_pct):'?')+' '+arr(r.prev_cbh_pct,r.cbh_pct)+' '+fP(r.cbh_pct));
+  lines.push('CBH: '+(r.prev_cbh!=null?f$(r.prev_cbh):'?')+' '+arr(r.prev_cbh,r.cbh)+' '+f$(r.cbh));
   navigator.clipboard.writeText(lines.join('\n')).then(() => showToast());
 }
 
