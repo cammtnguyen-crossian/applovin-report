@@ -1,12 +1,9 @@
 <!--
   AppLovin Performance Agent Dashboard
   =====================================
-  Trước khi deploy: tìm và thay 2 dòng sau:
-  1. YOUR_SUPABASE_URL  → URL từ Supabase Settings > API
-  2. YOUR_SUPABASE_KEY  → Publishable key từ Supabase Settings > API Keys
-
-  Sau đó upload file này lên GitHub repo (đổi tên thành index.html)
-  và enable GitHub Pages trong Settings > Pages
+  ✅ Credentials Supabase đã điền sẵn bên dưới (const SUPABASE_URL / SUPABASE_KEY) — không cần sửa gì.
+  Chỉ cần upload file này lên GitHub repo (đổi tên thành index.html, đè lên bản cũ)
+  và đảm bảo GitHub Pages đã enable trong Settings > Pages.
 -->
 <!DOCTYPE html>
 <html lang="vi">
@@ -180,8 +177,8 @@
 <div class="toast" id="toast">Đã copy!</div>
 
 <script>
-const SUPABASE_URL = "YOUR_SUPABASE_URL";
-const SUPABASE_KEY = "YOUR_SUPABASE_KEY";
+const SUPABASE_URL = "https://zcdbdrtttlrwhwofgbgz.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjZGJkcnR0dGxyd2h3b2ZnYmd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjI4MjQsImV4cCI6MjA5NjA5ODgyNH0.Lw4Kqp9ZFhn_KhxCY5fDxSc6SkJxVIvMEC3vAN_qR4s";
 
 // ── Init ──
 const yesterday = new Date();
